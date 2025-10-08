@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { trackingAPI } from '../utils/api';
 import { toast } from 'react-toastify';
 import { TruckIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import axios from 'axios';
 
 const PublicTracking = () => {
   const [resi, setResi] = useState('');
   const [tracking, setTracking] = useState(null);
+  const [externalTracking, setExternalTracking] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -16,11 +18,30 @@ const PublicTracking = () => {
     }
 
     setLoading(true);
+    setExternalTracking(null);
+    
     try {
       const response = await trackingAPI.getTrackingByResi(resi);
-      setTracking(response.data.data);
+      const trackingData = response.data.data;
+      setTracking(trackingData);
+
+      // Fetch external tracking if expedition info exists
+      if (trackingData.transaction?.expedition_resi && trackingData.transaction?.expedition?.api_url) {
+        try {
+          const expeditionApiUrl = trackingData.transaction.expedition.api_url;
+          const expeditionResi = trackingData.transaction.expedition_resi;
+          const externalUrl = `${expeditionApiUrl}/${expeditionResi}`;
+          
+          const externalResponse = await axios.get(externalUrl);
+          setExternalTracking(externalResponse.data);
+        } catch (externalError) {
+          console.error('Error fetching external tracking:', externalError);
+          // Don't show error to user, just don't display external tracking
+        }
+      }
     } catch (error) {
       setTracking(null);
+      setExternalTracking(null);
       toast.error('Resi tidak ditemukan');
     } finally {
       setLoading(false);
@@ -148,56 +169,131 @@ const PublicTracking = () => {
 
             {/* Tracking Timeline */}
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                Status Perjalanan
-              </h3>
-              
-              {tracking.updates && tracking.updates.length > 0 ? (
-                <div className="flow-root">
-                  <ul className="-mb-8">
-                    {tracking.updates.map((update, updateIdx) => (
-                      <li key={updateIdx}>
-                        <div className="relative pb-8">
-                          {updateIdx !== tracking.updates.length - 1 ? (
-                            <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
-                          ) : null}
-                          <div className="relative flex space-x-3">
-                            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${getStatusColor(update.status)} ring-8 ring-white`}>
-                              {getStatusIcon(update.status)}
-                            </div>
-                            <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                              <div>
-                                <p className="text-sm text-gray-900 font-medium">
-                                  {update.description}
-                                </p>
-                                <p className={`mt-1 text-sm ${getStatusColor(update.status)} inline-flex items-center space-x-1 px-2 py-1 rounded-full font-medium`}>
-                                  <span>Status: {update.status}</span>
-                                </p>
-                              </div>
-                              <div className="whitespace-nowrap text-right text-sm text-gray-500">
-                                <time dateTime={update.created_at}>
-                                  {new Date(update.created_at).toLocaleDateString('id-ID', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </time>
-                              </div>
-                            </div>
+              {/* Show External Tracking if available */}
+              {externalTracking?.data?.tracking ? (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Status Perjalanan dari {tracking.transaction?.expedition?.name || 'Ekspedisi'}
+                    </h3>
+                    {tracking.transaction?.expedition_resi && (
+                      <span className="text-sm text-gray-600">
+                        Resi Ekspedisi: <span className="font-mono font-semibold text-blue-600">{tracking.transaction.expedition_resi}</span>
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flow-root">
+                    {externalTracking.data.tracking.map((trackingGroup, groupIdx) => (
+                      <div key={groupIdx} className="mb-6">
+                        {trackingGroup.resi_sub_internal && (
+                          <div className="mb-3 p-2 bg-gray-50 rounded">
+                            <span className="text-xs text-gray-600">Sub Resi: </span>
+                            <span className="text-xs font-mono font-semibold text-gray-900">{trackingGroup.resi_sub_internal}</span>
                           </div>
-                        </div>
-                      </li>
+                        )}
+                        <ul className="-mb-8">
+                          {trackingGroup.checkpoint?.map((checkpoint, checkpointIdx) => (
+                            <li key={checkpointIdx}>
+                              <div className="relative pb-8">
+                                {checkpointIdx !== trackingGroup.checkpoint.length - 1 ? (
+                                  <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                                ) : null}
+                                <div className="relative flex space-x-3">
+                                  <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                                    checkpointIdx === 0 ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+                                  } ring-8 ring-white`}>
+                                    {checkpointIdx === 0 ? <CheckCircleIcon className="h-5 w-5" /> : <TruckIcon className="h-5 w-5" />}
+                                  </div>
+                                  <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                    <div>
+                                      <p className="text-sm text-gray-900 font-medium">
+                                        {checkpoint.status}
+                                      </p>
+                                      {checkpoint.location && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          📍 {checkpoint.location}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="whitespace-nowrap text-right text-sm text-gray-500">
+                                      <time dateTime={checkpoint.time}>
+                                        {new Date(checkpoint.time).toLocaleDateString('id-ID', {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })}
+                                      </time>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <TruckIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <p className="mt-4 text-sm text-gray-500">
-                    Belum ada update tracking untuk paket ini
-                  </p>
+                // Show Internal Tracking as fallback
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                    Status Perjalanan
+                  </h3>
+                  
+                  {tracking.updates && tracking.updates.length > 0 ? (
+                    <div className="flow-root">
+                      <ul className="-mb-8">
+                        {tracking.updates.map((update, updateIdx) => (
+                          <li key={updateIdx}>
+                            <div className="relative pb-8">
+                              {updateIdx !== tracking.updates.length - 1 ? (
+                                <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                              ) : null}
+                              <div className="relative flex space-x-3">
+                                <div className={`flex h-8 w-8 items-center justify-center rounded-full ${getStatusColor(update.status)} ring-8 ring-white`}>
+                                  {getStatusIcon(update.status)}
+                                </div>
+                                <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                  <div>
+                                    <p className="text-sm text-gray-900 font-medium">
+                                      {update.description}
+                                    </p>
+                                    <p className={`mt-1 text-sm ${getStatusColor(update.status)} inline-flex items-center space-x-1 px-2 py-1 rounded-full font-medium`}>
+                                      <span>Status: {update.status}</span>
+                                    </p>
+                                  </div>
+                                  <div className="whitespace-nowrap text-right text-sm text-gray-500">
+                                    <time dateTime={update.created_at}>
+                                      {new Date(update.created_at).toLocaleDateString('id-ID', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
+                                    </time>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <TruckIcon className="mx-auto h-12 w-12 text-gray-400" />
+                      <p className="mt-4 text-sm text-gray-500">
+                        {tracking.transaction?.expedition_resi 
+                          ? 'Paket sedang dalam proses di ekspedisi'
+                          : 'Belum ada update tracking untuk paket ini'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

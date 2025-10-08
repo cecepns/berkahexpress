@@ -24,7 +24,7 @@ if (!fs.existsSync('uploads-berkahexpress')) {
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, 'uploads-berkahexpress/');
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -286,7 +286,7 @@ app.delete('/api/users/:id', authenticateToken, adminOnly, (req, res) => {
 
 // Get all prices
 app.get('/api/prices', (req, res) => {
-  db.query('SELECT * FROM prices ORDER BY country', (err, results) => {
+  db.query('SELECT * FROM prices ORDER BY country, category', (err, results) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error' });
     }
@@ -294,19 +294,52 @@ app.get('/api/prices', (req, res) => {
   });
 });
 
+// Get prices by country and category (for customer order form)
+app.get('/api/prices/:country/:category', (req, res) => {
+  const { country, category } = req.params;
+  
+  db.query(
+    'SELECT * FROM prices WHERE country = ? AND category = ?',
+    [country, category],
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+      
+      if (results.length === 0) {
+        return res.status(404).json({ success: false, message: 'Price not found' });
+      }
+      
+      res.json({ success: true, data: results[0] });
+    }
+  );
+});
+
 // Create price
 app.post('/api/prices', authenticateToken, adminOnly, (req, res) => {
-  const { country, price_per_kg, price_per_volume } = req.body;
+  const { 
+    country, 
+    category, 
+    price_per_kg, 
+    price_per_volume, 
+    price_per_kg_mitra, 
+    price_per_volume_mitra, 
+    is_identity 
+  } = req.body;
 
-  if (!country || !price_per_kg || !price_per_volume) {
+  if (!country || !category || !price_per_kg || !price_per_volume || !price_per_kg_mitra || !price_per_volume_mitra) {
     return res.status(400).json({ success: false, message: 'All fields are required' });
   }
 
   db.query(
-    'INSERT INTO prices (country, price_per_kg, price_per_volume) VALUES (?, ?, ?)',
-    [country, price_per_kg, price_per_volume],
+    `INSERT INTO prices (country, category, price_per_kg, price_per_volume, price_per_kg_mitra, price_per_volume_mitra, is_identity) 
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [country, category, price_per_kg, price_per_volume, price_per_kg_mitra, price_per_volume_mitra, is_identity || false],
     (err, results) => {
       if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ success: false, message: 'Price for this country and category already exists' });
+        }
         return res.status(500).json({ success: false, message: 'Database error' });
       }
 
@@ -322,13 +355,27 @@ app.post('/api/prices', authenticateToken, adminOnly, (req, res) => {
 // Update price
 app.put('/api/prices/:id', authenticateToken, adminOnly, (req, res) => {
   const priceId = req.params.id;
-  const { country, price_per_kg, price_per_volume } = req.body;
+  const { 
+    country, 
+    category, 
+    price_per_kg, 
+    price_per_volume, 
+    price_per_kg_mitra, 
+    price_per_volume_mitra, 
+    is_identity 
+  } = req.body;
 
   db.query(
-    'UPDATE prices SET country = ?, price_per_kg = ?, price_per_volume = ? WHERE id = ?',
-    [country, price_per_kg, price_per_volume, priceId],
+    `UPDATE prices 
+     SET country = ?, category = ?, price_per_kg = ?, price_per_volume = ?, 
+         price_per_kg_mitra = ?, price_per_volume_mitra = ?, is_identity = ? 
+     WHERE id = ?`,
+    [country, category, price_per_kg, price_per_volume, price_per_kg_mitra, price_per_volume_mitra, is_identity, priceId],
     (err, results) => {
       if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ success: false, message: 'Price for this country and category already exists' });
+        }
         return res.status(500).json({ success: false, message: 'Database error' });
       }
 
@@ -431,6 +478,98 @@ app.delete('/api/accounts/:id', authenticateToken, adminOnly, (req, res) => {
     }
 
     res.json({ success: true, message: 'Bank account deleted successfully' });
+  });
+});
+
+// ==================== EXPEDITION ROUTES ====================
+
+// Get all expeditions
+app.get('/api/expeditions', (req, res) => {
+  db.query('SELECT * FROM expeditions WHERE is_active = TRUE ORDER BY name', (err, results) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    res.json({ success: true, data: results });
+  });
+});
+
+// Get all expeditions (admin - including inactive)
+app.get('/api/expeditions/all', authenticateToken, adminOnly, (req, res) => {
+  db.query('SELECT * FROM expeditions ORDER BY name', (err, results) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    res.json({ success: true, data: results });
+  });
+});
+
+// Create expedition
+app.post('/api/expeditions', authenticateToken, adminOnly, (req, res) => {
+  const { name, code, api_url, api_key } = req.body;
+
+  if (!name || !code) {
+    return res.status(400).json({ success: false, message: 'Name and code are required' });
+  }
+
+  db.query(
+    'INSERT INTO expeditions (name, code, api_url, api_key) VALUES (?, ?, ?, ?)',
+    [name, code, api_url || null, api_key || null],
+    (err, results) => {
+      if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ success: false, message: 'Expedition code already exists' });
+        }
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Expedition created successfully',
+        data: { id: results.insertId }
+      });
+    }
+  );
+});
+
+// Update expedition
+app.put('/api/expeditions/:id', authenticateToken, adminOnly, (req, res) => {
+  const expeditionId = req.params.id;
+  const { name, code, api_url, api_key, is_active } = req.body;
+
+  db.query(
+    'UPDATE expeditions SET name = ?, code = ?, api_url = ?, api_key = ?, is_active = ? WHERE id = ?',
+    [name, code, api_url || null, api_key || null, is_active, expeditionId],
+    (err, results) => {
+      if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ success: false, message: 'Expedition code already exists' });
+        }
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: 'Expedition not found' });
+      }
+
+      res.json({ success: true, message: 'Expedition updated successfully' });
+    }
+  );
+});
+
+// Delete expedition
+app.delete('/api/expeditions/:id', authenticateToken, adminOnly, (req, res) => {
+  const expeditionId = req.params.id;
+
+  db.query('DELETE FROM expeditions WHERE id = ?', [expeditionId], (err, results) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Expedition not found' });
+    }
+
+    res.json({ success: true, message: 'Expedition deleted successfully' });
   });
 });
 
@@ -612,119 +751,222 @@ app.get('/api/transactions/user', authenticateToken, (req, res) => {
   );
 });
 
-// Create transaction
-app.post('/api/transactions', authenticateToken, (req, res) => {
-  const { destination, weight, length, width, height } = req.body;
+// Create transaction with file uploads
+app.post('/api/transactions', authenticateToken, upload.fields([
+  { name: 'foto_alamat', maxCount: 1 },
+  { name: 'tanda_pengenal_depan', maxCount: 1 },
+  { name: 'tanda_pengenal_belakang', maxCount: 1 }
+]), (req, res) => {
+  const { 
+    destination,
+    receiver_name,
+    receiver_phone, 
+    receiver_address, 
+    item_category,
+    weight, 
+    length, 
+    width, 
+    height,
+    kode_pos_penerima,
+    nomor_identitas_penerima,
+    email_penerima
+  } = req.body;
 
-  if (!destination || !weight || !length || !width || !height) {
-    return res.status(400).json({ success: false, message: 'All fields are required' });
+  if (!destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height) {
+    return res.status(400).json({ success: false, message: 'All required fields must be filled' });
   }
 
-  // Get price for destination
-  db.query('SELECT * FROM prices WHERE country = ?', [destination], (err, priceResults) => {
+  // Get user role to determine pricing
+  db.query('SELECT role FROM users WHERE id = ?', [req.user.id], (err, userRoleResults) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error' });
     }
 
-    if (priceResults.length === 0) {
-      return res.status(400).json({ success: false, message: 'Destination not available' });
-    }
-
-    const price = priceResults[0];
-    const volume = (length * width * height) / 1000000; // Convert to cubic meters
-    const weightPrice = weight * price.price_per_kg;
-    const volumePrice = volume * price.price_per_volume;
-    const totalPrice = Math.max(weightPrice, volumePrice); // Use higher price
-
-    // Check user balance
-    db.query('SELECT balance FROM users WHERE id = ?', [req.user.id], (err, userResults) => {
+    const userRole = userRoleResults[0].role;
+    
+    // Get price for destination and category
+    db.query('SELECT * FROM prices WHERE country = ? AND category = ?', [destination, item_category], (err, priceResults) => {
       if (err) {
         return res.status(500).json({ success: false, message: 'Database error' });
       }
 
-      const userBalance = userResults[0].balance;
-
-      if (userBalance < totalPrice) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Insufficient balance. Please top up your account.' 
-        });
+      if (priceResults.length === 0) {
+        return res.status(400).json({ success: false, message: 'Price not available for this destination and category' });
       }
 
-      const resi = generateResi();
+      const price = priceResults[0];
+      const volume = (length * width * height) / 1000000; // Convert to cubic meters
+      
+      // Determine which price to use based on user role
+      const pricePerKg = userRole === 'mitra' ? price.price_per_kg_mitra : price.price_per_kg;
+      const pricePerVolume = userRole === 'mitra' ? price.price_per_volume_mitra : price.price_per_volume;
+      
+      const weightPrice = weight * pricePerKg;
+      const volumePrice = volume * pricePerVolume;
+      const totalPrice = Math.max(weightPrice, volumePrice); // Use higher price
 
-      // Start transaction
-      db.beginTransaction((err) => {
+      // Check user balance
+      db.query('SELECT balance FROM users WHERE id = ?', [req.user.id], (err, userResults) => {
         if (err) {
-          return res.status(500).json({ success: false, message: 'Transaction error' });
+          return res.status(500).json({ success: false, message: 'Database error' });
         }
 
-        // Create transaction record
+        const userBalance = userResults[0].balance;
+
+        if (userBalance < totalPrice) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Insufficient balance. Please top up your account.' 
+          });
+        }
+
+        const resi = generateResi();
+
+        // Get uploaded files
+        const fotoAlamat = req.files?.foto_alamat ? req.files.foto_alamat[0].filename : null;
+        const tandaPengenalDepan = req.files?.tanda_pengenal_depan ? req.files.tanda_pengenal_depan[0].filename : null;
+        const tandaPengenalBelakang = req.files?.tanda_pengenal_belakang ? req.files.tanda_pengenal_belakang[0].filename : null;
+
+        // Start transaction
+        db.beginTransaction((err) => {
+          if (err) {
+            return res.status(500).json({ success: false, message: 'Transaction error' });
+          }
+
+          // Create transaction record
+          db.query(
+            `INSERT INTO transactions 
+             (user_id, resi, destination, receiver_name, receiver_phone, receiver_address, item_category,
+              weight, length, width, height, volume, 
+              price_per_kg, price_per_volume, total_price,
+              foto_alamat, kode_pos_penerima, tanda_pengenal_depan, tanda_pengenal_belakang,
+              nomor_identitas_penerima, email_penerima) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              req.user.id, resi, destination, receiver_name, receiver_phone, receiver_address, item_category,
+              weight, length, width, height, volume, 
+              pricePerKg, pricePerVolume, totalPrice,
+              fotoAlamat, kode_pos_penerima || null, tandaPengenalDepan, tandaPengenalBelakang,
+              nomor_identitas_penerima || null, email_penerima || null
+            ],
+            (err, transactionResults) => {
+              if (err) {
+                console.error('Transaction insert error:', err);
+                return db.rollback(() => {
+                  res.status(500).json({ success: false, message: 'Database error' });
+                });
+              }
+
+              // Deduct user balance
+              db.query(
+                'UPDATE users SET balance = balance - ? WHERE id = ?',
+                [totalPrice, req.user.id],
+                (err, updateResults) => {
+                  if (err) {
+                    return db.rollback(() => {
+                      res.status(500).json({ success: false, message: 'Database error' });
+                    });
+                  }
+
+                  // Add initial tracking update
+                  db.query(
+                    'INSERT INTO tracking_updates (transaction_id, status, description) VALUES (?, ?, ?)',
+                    [transactionResults.insertId, 'pending', 'Paket telah terdaftar dan menunggu diproses'],
+                    (err, trackingResults) => {
+                      if (err) {
+                        return db.rollback(() => {
+                          res.status(500).json({ success: false, message: 'Database error' });
+                        });
+                      }
+
+                      db.commit((err) => {
+                        if (err) {
+                          return db.rollback(() => {
+                            res.status(500).json({ success: false, message: 'Commit error' });
+                          });
+                        }
+
+                        res.status(201).json({
+                          success: true,
+                          message: 'Transaction created successfully',
+                          data: { 
+                            id: transactionResults.insertId, 
+                            resi: resi,
+                            total_price: totalPrice 
+                          }
+                        });
+                      });
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
+      });
+    });
+  });
+});
+
+// Update transaction expedition (admin input resi ekspedisi)
+app.put('/api/transactions/:id/expedition', authenticateToken, adminOnly, (req, res) => {
+  const transactionId = req.params.id;
+  const { expedition_id, expedition_resi } = req.body;
+
+  if (!expedition_id || !expedition_resi) {
+    return res.status(400).json({ success: false, message: 'Expedition ID and Resi are required' });
+  }
+
+  // When admin inputs expedition resi, automatically update status to 'dikirim'
+  db.beginTransaction((err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Transaction error' });
+    }
+
+    db.query(
+      'UPDATE transactions SET expedition_id = ?, expedition_resi = ?, status = ? WHERE id = ?',
+      [expedition_id, expedition_resi, 'dikirim', transactionId],
+      (err, results) => {
+        if (err) {
+          return db.rollback(() => {
+            res.status(500).json({ success: false, message: 'Database error' });
+          });
+        }
+
+        if (results.affectedRows === 0) {
+          return db.rollback(() => {
+            res.status(404).json({ success: false, message: 'Transaction not found' });
+          });
+        }
+
+        // Add tracking update
         db.query(
-          `INSERT INTO transactions 
-           (user_id, resi, destination, weight, length, width, height, volume, 
-            price_per_kg, price_per_volume, total_price) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [req.user.id, resi, destination, weight, length, width, height, volume, 
-           price.price_per_kg, price.price_per_volume, totalPrice],
-          (err, transactionResults) => {
+          'INSERT INTO tracking_updates (transaction_id, status, description) VALUES (?, ?, ?)',
+          [transactionId, 'dikirim', 'Paket telah diserahkan ke ekspedisi untuk pengiriman'],
+          (err, trackingResults) => {
             if (err) {
               return db.rollback(() => {
                 res.status(500).json({ success: false, message: 'Database error' });
               });
             }
 
-            // Deduct user balance
-            db.query(
-              'UPDATE users SET balance = balance - ? WHERE id = ?',
-              [totalPrice, req.user.id],
-              (err, updateResults) => {
-                if (err) {
-                  return db.rollback(() => {
-                    res.status(500).json({ success: false, message: 'Database error' });
-                  });
-                }
-
-                // Add initial tracking update
-                db.query(
-                  'INSERT INTO tracking_updates (transaction_id, status, description) VALUES (?, ?, ?)',
-                  [transactionResults.insertId, 'pending', 'Paket telah terdaftar dan menunggu diproses'],
-                  (err, trackingResults) => {
-                    if (err) {
-                      return db.rollback(() => {
-                        res.status(500).json({ success: false, message: 'Database error' });
-                      });
-                    }
-
-                    db.commit((err) => {
-                      if (err) {
-                        return db.rollback(() => {
-                          res.status(500).json({ success: false, message: 'Commit error' });
-                        });
-                      }
-
-                      res.status(201).json({
-                        success: true,
-                        message: 'Transaction created successfully',
-                        data: { 
-                          id: transactionResults.insertId, 
-                          resi: resi,
-                          total_price: totalPrice 
-                        }
-                      });
-                    });
-                  }
-                );
+            db.commit((err) => {
+              if (err) {
+                return db.rollback(() => {
+                  res.status(500).json({ success: false, message: 'Commit error' });
+                });
               }
-            );
+
+              res.json({ success: true, message: 'Expedition info updated and status changed to dikirim' });
+            });
           }
         );
-      });
-    });
+      }
+    );
   });
 });
 
-// Update transaction status
+// Update transaction status (manual)
 app.put('/api/transactions/:id/status', authenticateToken, adminOnly, (req, res) => {
   const transactionId = req.params.id;
   const { status } = req.body;
@@ -796,9 +1038,11 @@ app.get('/api/tracking/:resi', (req, res) => {
   const resi = req.params.resi;
 
   db.query(
-    `SELECT t.*, u.name as user_name, u.phone as user_phone
+    `SELECT t.*, u.name as user_name, u.phone as user_phone,
+            e.name as expedition_name, e.api_url as expedition_api_url
      FROM transactions t 
      JOIN users u ON t.user_id = u.id 
+     LEFT JOIN expeditions e ON t.expedition_id = e.id
      WHERE t.resi = ?`,
     [resi],
     (err, transactionResults) => {
@@ -829,6 +1073,10 @@ app.get('/api/tracking/:resi', (req, res) => {
                 user: {
                   name: transaction.user_name,
                   phone: transaction.user_phone
+                },
+                expedition: {
+                  name: transaction.expedition_name,
+                  api_url: transaction.expedition_api_url
                 }
               },
               updates: updateResults

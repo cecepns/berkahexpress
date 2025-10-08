@@ -65,6 +65,7 @@ export const userAPI = {
 // Price management endpoints
 export const priceAPI = {
   getAllPrices: () => api.get('/prices'),
+  getPriceByCountryAndCategory: (country, category) => api.get(`/prices/${country}/${category}`),
   createPrice: (priceData) => api.post('/prices', priceData),
   updatePrice: (id, priceData) => api.put(`/prices/${id}`, priceData),
   deletePrice: (id) => api.delete(`/prices/${id}`),
@@ -76,6 +77,15 @@ export const accountAPI = {
   createAccount: (accountData) => api.post('/accounts', accountData),
   updateAccount: (id, accountData) => api.put(`/accounts/${id}`, accountData),
   deleteAccount: (id) => api.delete(`/accounts/${id}`),
+};
+
+// Expedition management endpoints
+export const expeditionAPI = {
+  getAllExpeditions: () => api.get('/expeditions'),
+  getAllExpeditionsAdmin: () => api.get('/expeditions/all'),
+  createExpedition: (expeditionData) => api.post('/expeditions', expeditionData),
+  updateExpedition: (id, expeditionData) => api.put(`/expeditions/${id}`, expeditionData),
+  deleteExpedition: (id) => api.delete(`/expeditions/${id}`),
 };
 
 // Topup management endpoints
@@ -91,6 +101,7 @@ export const transactionAPI = {
   getUserTransactions: () => api.get('/transactions/user'),
   createTransaction: (transactionData) => api.post('/transactions', transactionData),
   updateTransactionStatus: (id, status) => api.put(`/transactions/${id}/status`, { status }),
+  updateTransactionExpedition: (id, expeditionData) => api.put(`/transactions/${id}/expedition`, expeditionData),
   getTransactionById: (id) => api.get(`/transactions/${id}`),
 };
 

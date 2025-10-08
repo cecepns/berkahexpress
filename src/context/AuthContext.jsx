@@ -60,6 +60,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!token,
     isAdmin: user?.role === 'admin',
     isCustomer: user?.role === 'customer',
+    isMitra: user?.role === 'mitra',
     refreshProfile,
   };
 

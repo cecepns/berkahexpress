@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -6,11 +6,15 @@ import {
   ShoppingCartIcon,
   BanknotesIcon,
   TruckIcon,
+  Bars3Icon,
+  XMarkIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
+import Logo from '../../assets/logo.png';
 
 const CustomerLayout = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout, refreshProfile, isAuthenticated, isCustomer } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -46,90 +50,139 @@ const CustomerLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link to="/dashboard" className="flex-shrink-0">
-                <h1 className="text-xl font-bold text-primary-600">BerkahExpress</h1>
-              </Link>
-              <div className="hidden md:ml-6 md:flex md:space-x-8">
-                {navigation.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.href;
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
-                        isActive
-                          ? 'border-primary-500 text-primary-600'
-                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                      }`}
-                    >
-                      <Icon className="mr-2 h-4 w-4" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
+      {/* Mobile sidebar */}
+      <div className={`fixed inset-0 flex z-40 md:hidden ${sidebarOpen ? '' : 'pointer-events-none'}`}>
+        <div className={`fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`} onClick={() => setSidebarOpen(false)} />
+        
+        <div className={`relative flex-1 flex flex-col max-w-xs w-full pt-5 pb-4 bg-white transform transition ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="absolute top-0 right-0 -mr-12 pt-2">
+            <button
+              type="button"
+              className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <XMarkIcon className="h-6 w-6 text-white" />
+            </button>
+          </div>
+
+          <div className="flex-shrink-0 flex items-center px-4">
+            <img src={Logo} alt="BerkahExpress" className="h-auto w-20" />
+          </div>
+
+          <div className="mt-5 flex-1 h-0 overflow-y-auto">
+            <nav className="px-2 space-y-1">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors ${
+                      isActive
+                        ? 'bg-primary-100 text-primary-900'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Icon className="mr-4 h-6 w-6" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      {/* Static sidebar for desktop */}
+      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
+        <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto shadow-lg">
+          <div className="flex items-center flex-shrink-0 px-4 justify-center border-b pb-2">
+            <img src={Logo} alt="BerkahExpress" className="h-auto w-16" />
+          </div>
+
+          <div className="mt-5 flex-grow flex flex-col">
+            <nav className="flex-1 px-2 pb-4 space-y-1">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive
+                        ? 'bg-primary-100 text-primary-900'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon className="mr-3 h-6 w-6" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="md:pl-64 flex flex-col flex-1">
+        <div className="sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white shadow">
+          <button
+            type="button"
+            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 md:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Bars3Icon className="h-6 w-6" />
+          </button>
+
+          <div className="flex-1 px-4 flex justify-between items-center">
+            <div className="flex-1">
+              <h1 className="text-lg font-semibold text-gray-900">
+                Customer Dashboard
+              </h1>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Saldo:</span>
-                <span className="text-sm font-semibold text-primary-600">
-                  Rp {user?.balance?.toLocaleString('id-ID') || '0'}
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">
-                  {user?.name}
-                </span>
+            <div className="ml-4 flex items-center md:ml-6">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Saldo:</span>
+                  <span className="text-sm font-semibold text-primary-600">
+                    Rp {user?.balance?.toLocaleString('id-ID') || '0'}
+                  </span>
+                </div>
+                <div className="hidden sm:flex items-center space-x-2">
+                  <span className="text-sm text-gray-700">
+                    {user?.name}
+                    {user?.role === 'mitra' && (
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        Mitra
+                      </span>
+                    )}
+                  </span>
+                </div>
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
                 >
                   <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                  <span>Logout</span>
+                  <span className="hidden sm:inline">Logout</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden">
-          <div className="pt-2 pb-3 space-y-1">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium transition-colors ${
-                    isActive
-                      ? 'bg-primary-50 border-primary-500 text-primary-700'
-                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <Icon className="mr-3 h-5 w-5" />
-                    {item.name}
-                  </div>
-                </Link>
-              );
-            })}
+        <main className="flex-1">
+          <div className="py-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+              {children}
+            </div>
           </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {children}
-      </main>
+        </main>
+      </div>
     </div>
   );
 };

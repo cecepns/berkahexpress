@@ -17,6 +17,7 @@ import PublicTracking from './pages/PublicTracking';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import PriceManagement from './pages/admin/PriceManagement';
+import ExpeditionManagement from './pages/admin/ExpeditionManagement';
 import TopupManagement from './pages/admin/TopupManagement';
 import BankAccountManagement from './pages/admin/BankAccountManagement';
 import TransactionManagement from './pages/admin/TransactionManagement';
@@ -49,6 +50,7 @@ function App() {
                       <Route index element={<AdminDashboard />} />
                       <Route path="users" element={<UserManagement />} />
                       <Route path="prices" element={<PriceManagement />} />
+                      <Route path="expeditions" element={<ExpeditionManagement />} />
                       <Route path="topups" element={<TopupManagement />} />
                       <Route path="accounts" element={<BankAccountManagement />} />
                       <Route path="transactions" element={<TransactionManagement />} />

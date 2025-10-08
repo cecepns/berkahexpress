@@ -229,6 +229,8 @@ const UserManagement = () => {
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       user.role === 'admin' 
                         ? 'bg-purple-100 text-purple-800' 
+                        : user.role === 'mitra'
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-blue-100 text-blue-800'
                     }`}>
                       {user.role}
@@ -328,6 +330,7 @@ const UserManagement = () => {
                   onChange={(e) => setFormData({...formData, role: e.target.value})}
                 >
                   <option value="customer">Customer</option>
+                  <option value="mitra">Mitra</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>

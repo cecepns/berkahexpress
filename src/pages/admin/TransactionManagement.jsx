@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { transactionAPI } from '../../utils/api';
+import { transactionAPI, expeditionAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
 import { 
   EyeIcon,
@@ -9,14 +9,20 @@ import {
 
 const TransactionManagement = () => {
   const [transactions, setTransactions] = useState([]);
+  const [expeditions, setExpeditions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [expeditionForm, setExpeditionForm] = useState({
+    expedition_id: '',
+    expedition_resi: ''
+  });
 
   useEffect(() => {
     fetchTransactions();
+    fetchExpeditions();
   }, []);
 
   const fetchTransactions = async () => {
@@ -30,6 +36,15 @@ const TransactionManagement = () => {
     }
   };
 
+  const fetchExpeditions = async () => {
+    try {
+      const response = await expeditionAPI.getAllExpeditions();
+      setExpeditions(response.data.data);
+    } catch (error) {
+      console.error('Error fetching expeditions:', error);
+    }
+  };
+
   const handleStatusUpdate = async (transactionId, status) => {
     try {
       await transactionAPI.updateTransactionStatus(transactionId, status);
@@ -37,6 +52,24 @@ const TransactionManagement = () => {
       fetchTransactions();
     } catch (error) {
       console.error('Error updating transaction status:', error);
+    }
+  };
+
+  const handleExpeditionUpdate = async (e) => {
+    e.preventDefault();
+    if (!expeditionForm.expedition_id || !expeditionForm.expedition_resi) {
+      toast.error('Pilih ekspedisi dan masukkan no resi');
+      return;
+    }
+
+    try {
+      await transactionAPI.updateTransactionExpedition(selectedTransaction.id, expeditionForm);
+      toast.success('Ekspedisi berhasil diupdate dan status otomatis berubah ke Dikirim');
+      setShowModal(false);
+      setExpeditionForm({ expedition_id: '', expedition_resi: '' });
+      fetchTransactions();
+    } catch (error) {
+      console.error('Error updating expedition:', error);
     }
   };
 
@@ -117,6 +150,9 @@ const TransactionManagement = () => {
                   Resi
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Resi Ekspedisi
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Pengirim
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -144,6 +180,13 @@ const TransactionManagement = () => {
                 <tr key={transaction.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 font-mono">{transaction.resi}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {transaction.expedition_resi ? (
+                      <div className="text-sm font-medium text-blue-600 font-mono">{transaction.expedition_resi}</div>
+                    ) : (
+                      <div className="text-sm text-gray-400 italic">Belum diinput</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
@@ -203,116 +246,214 @@ const TransactionManagement = () => {
       {/* Detail Modal */}
       {showModal && selectedTransaction && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-[500px] shadow-lg rounded-md bg-white">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white my-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">
               Detail Transaksi
             </h3>
             
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Resi</label>
-                  <p className="mt-1 text-sm font-mono text-gray-900">{selectedTransaction.resi}</p>
+                  <label className="block text-sm font-medium text-gray-700">Resi Kami</label>
+                  <p className="mt-1 text-sm font-mono font-semibold text-gray-900">{selectedTransaction.resi}</p>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Status</label>
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedTransaction.status)}`}>
                     {selectedTransaction.status}
                   </span>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Pengirim</label>
-                <p className="mt-1 text-sm text-gray-900">{selectedTransaction.user_name}</p>
-                <p className="text-sm text-gray-500">{selectedTransaction.user_email}</p>
-                <p className="text-sm text-gray-500">{selectedTransaction.user_phone}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Tujuan</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedTransaction.destination}</p>
+                  <label className="block text-sm font-medium text-gray-700">Kategori Barang</label>
+                  <p className="mt-1 text-sm text-gray-900">{selectedTransaction.item_category || 'NORMAL'}</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Berat</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedTransaction.weight} kg</p>
+
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Informasi Pengirim</h4>
+                  <p className="text-sm text-gray-900">{selectedTransaction.user_name}</p>
+                  <p className="text-sm text-gray-500">{selectedTransaction.user_email}</p>
+                  <p className="text-sm text-gray-500">{selectedTransaction.user_phone}</p>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Dimensi (P x L x T)</label>
-                <p className="mt-1 text-sm text-gray-900">
-                  {selectedTransaction.length} x {selectedTransaction.width} x {selectedTransaction.height} cm
-                </p>
-                <p className="text-sm text-gray-500">Volume: {selectedTransaction.volume ? Number(selectedTransaction.volume).toFixed(4) : '0.0000'} m³</p>
-              </div>
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Informasi Penerima</h4>
+                  <p className="text-sm text-gray-900">Negara: {selectedTransaction.destination}</p>
+                  {selectedTransaction.receiver_name && (
+                    <p className="text-sm font-medium text-gray-900 mt-2">Nama: {selectedTransaction.receiver_name}</p>
+                  )}
+                  {selectedTransaction.receiver_phone && (
+                    <p className="text-sm text-gray-500">Telp: {selectedTransaction.receiver_phone}</p>
+                  )}
+                  {selectedTransaction.receiver_address && (
+                    <p className="text-sm text-gray-500">Alamat: {selectedTransaction.receiver_address}</p>
+                  )}
+                  {selectedTransaction.email_penerima && (
+                    <p className="text-sm text-gray-500">Email: {selectedTransaction.email_penerima}</p>
+                  )}
+                  {selectedTransaction.kode_pos_penerima && (
+                    <p className="text-sm text-gray-500">Kode Pos: {selectedTransaction.kode_pos_penerima}</p>
+                  )}
+                  {selectedTransaction.nomor_identitas_penerima && (
+                    <p className="text-sm text-gray-500">No. Identitas: {selectedTransaction.nomor_identitas_penerima}</p>
+                  )}
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Harga per KG</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    Rp {selectedTransaction.price_per_kg ? Number(selectedTransaction.price_per_kg).toLocaleString('id-ID') : '0'}
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Dimensi & Berat</h4>
+                  <p className="text-sm text-gray-900">Berat: {selectedTransaction.weight} kg</p>
+                  <p className="text-sm text-gray-900">
+                    Dimensi: {selectedTransaction.length} x {selectedTransaction.width} x {selectedTransaction.height} cm
+                  </p>
+                  <p className="text-sm text-gray-500">Volume: {selectedTransaction.volume ? Number(selectedTransaction.volume).toFixed(4) : '0.0000'} m³</p>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Biaya</h4>
+                  <p className="text-sm text-gray-500">Harga per KG: Rp {selectedTransaction.price_per_kg ? Number(selectedTransaction.price_per_kg).toLocaleString('id-ID') : '0'}</p>
+                  <p className="text-sm text-gray-500">Harga per Vol: Rp {selectedTransaction.price_per_volume ? Number(selectedTransaction.price_per_volume).toLocaleString('id-ID') : '0'}</p>
+                  <p className="mt-2 text-lg font-semibold text-primary-600">
+                    Total: Rp {selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID') : '0'}
                   </p>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Harga per Volume</label>
+                  <label className="block text-sm font-medium text-gray-700">Tanggal Transaksi</label>
                   <p className="mt-1 text-sm text-gray-900">
-                    Rp {selectedTransaction.price_per_volume ? Number(selectedTransaction.price_per_volume).toLocaleString('id-ID') : '0'}
+                    {new Date(selectedTransaction.created_at).toLocaleString('id-ID')}
                   </p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Total Biaya</label>
-                <p className="mt-1 text-lg font-semibold text-primary-600">
-                  Rp {selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID') : '0'}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tanggal Transaksi</label>
-                <p className="mt-1 text-sm text-gray-900">
-                  {new Date(selectedTransaction.created_at).toLocaleString('id-ID')}
-                </p>
-              </div>
-
-              {selectedTransaction.status !== 'sukses' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Update Status</label>
-                  <div className="flex space-x-2">
-                    {selectedTransaction.status === 'pending' && (
+              {/* Right Column */}
+              <div className="space-y-4">
+                {/* Expedition Form - Only show for pending status */}
+                {selectedTransaction.status === 'pending' && (
+                  <div className="border-l pl-6">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Input Ekspedisi</h4>
+                    <form onSubmit={handleExpeditionUpdate} className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Pilih Ekspedisi</label>
+                        <select
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                          value={expeditionForm.expedition_id}
+                          onChange={(e) => setExpeditionForm({...expeditionForm, expedition_id: e.target.value})}
+                          required
+                        >
+                          <option value="">Pilih Ekspedisi</option>
+                          {expeditions.map(exp => (
+                            <option key={exp.id} value={exp.id}>{exp.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">No. Resi Ekspedisi</label>
+                        <input
+                          type="text"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                          value={expeditionForm.expedition_resi}
+                          onChange={(e) => setExpeditionForm({...expeditionForm, expedition_resi: e.target.value})}
+                          placeholder="Masukkan no resi ekspedisi"
+                          required
+                        />
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-md">
+                        <p className="text-xs text-blue-600">
+                          <strong>Info:</strong> Setelah input resi ekspedisi, status otomatis akan berubah menjadi &ldquo;Dikirim&rdquo;
+                        </p>
+                      </div>
                       <button
-                        onClick={() => {
-                          handleStatusUpdate(selectedTransaction.id, 'dikirim');
-                          setShowModal(false);
-                        }}
-                        className="px-3 py-1 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                        type="submit"
+                        className="w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md"
                       >
-                        Tandai Dikirim
+                        Simpan Ekspedisi
                       </button>
-                    )}
-                    {selectedTransaction.status === 'dikirim' && (
-                      <button
-                        onClick={() => {
-                          handleStatusUpdate(selectedTransaction.id, 'sukses');
-                          setShowModal(false);
-                        }}
-                        className="px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
-                      >
-                        Tandai Sukses
-                      </button>
-                    )}
+                    </form>
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* Show expedition info for non-pending status */}
+                {selectedTransaction.status !== 'pending' && selectedTransaction.expedition_resi && (
+                  <div className="border-l pl-6">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Informasi Ekspedisi</h4>
+                    <p className="text-sm text-gray-900">No. Resi Ekspedisi: <span className="font-mono">{selectedTransaction.expedition_resi}</span></p>
+                  </div>
+                )}
+
+                {/* Identity Documents */}
+                {(selectedTransaction.foto_alamat || selectedTransaction.tanda_pengenal_depan || selectedTransaction.tanda_pengenal_belakang) && (
+                  <div className="border-l pl-6 border-t pt-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Dokumen Identitas</h4>
+                    <div className="space-y-2">
+                      {selectedTransaction.foto_alamat && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500">Foto Alamat</label>
+                          <a 
+                            href={`https://api-inventory.isavralabel.com/berkahexpress/uploads-berkahexpress/${selectedTransaction.foto_alamat}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Lihat Dokumen
+                          </a>
+                        </div>
+                      )}
+                      {selectedTransaction.tanda_pengenal_depan && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500">Tanda Pengenal Depan</label>
+                          <a 
+                            href={`https://api-inventory.isavralabel.com/berkahexpress/uploads-berkahexpress/${selectedTransaction.tanda_pengenal_depan}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Lihat Dokumen
+                          </a>
+                        </div>
+                      )}
+                      {selectedTransaction.tanda_pengenal_belakang && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500">Tanda Pengenal Belakang</label>
+                          <a 
+                            href={`https://api-inventory.isavralabel.com/berkahexpress/uploads-berkahexpress/${selectedTransaction.tanda_pengenal_belakang}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Lihat Dokumen
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual Status Update */}
+                {selectedTransaction.status === 'dikirim' && (
+                  <div className="border-l pl-6 border-t pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Update Status</label>
+                    <button
+                      onClick={() => {
+                        handleStatusUpdate(selectedTransaction.id, 'sukses');
+                        setShowModal(false);
+                      }}
+                      className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
+                    >
+                      Tandai Sukses
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex justify-end space-x-3 pt-6">
+            <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
               <button
                 onClick={() => {
                   setShowModal(false);
                   setSelectedTransaction(null);
+                  setExpeditionForm({ expedition_id: '', expedition_resi: '' });
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
               >

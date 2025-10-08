@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../utils/api';
@@ -35,6 +35,7 @@ const Login = () => {
       if (user.role === 'admin') {
         navigate('/admin');
       } else {
+        // customer and mitra both go to dashboard
         navigate('/dashboard');
       }
     } catch (error) {

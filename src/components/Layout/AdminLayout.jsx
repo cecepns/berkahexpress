@@ -14,6 +14,7 @@ import {
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
+import Logo from '../../assets/logo.png';
 
 const AdminLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -25,6 +26,7 @@ const AdminLayout = ({ children }) => {
     { name: 'Dashboard', href: '/admin', icon: HomeIcon },
     { name: 'Manajemen User', href: '/admin/users', icon: UsersIcon },
     { name: 'Manajemen Harga', href: '/admin/prices', icon: CurrencyDollarIcon },
+    { name: 'Manajemen Ekspedisi', href: '/admin/expeditions', icon: TruckIcon },
     { name: 'Manajemen Topup', href: '/admin/topups', icon: BanknotesIcon },
     { name: 'Rekening Bank', href: '/admin/accounts', icon: CreditCardIcon },
     { name: 'Transaksi', href: '/admin/transactions', icon: ShoppingCartIcon },
@@ -54,8 +56,8 @@ const AdminLayout = ({ children }) => {
             </button>
           </div>
 
-          <div className="flex-shrink-0 flex items-center px-4">
-            <h1 className="text-xl font-bold text-primary-600">BerkahExpress</h1>
+          <div className="flex items-center flex-shrink-0 px-4 justify-center border-b pb-2">
+            <img src={Logo} alt="BerkahExpress" className="h-auto w-16" />
           </div>
 
           <div className="mt-5 flex-1 h-0 overflow-y-auto">
