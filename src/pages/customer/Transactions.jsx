@@ -168,7 +168,7 @@ const Transactions = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow">
         <div>
-          <label className="block text-sm font-medium mb-1">Tujuan (Negara) . </label>
+          <label className="block text-sm font-medium mb-1">Tujuan (Negara) / Sensitive / Battery </label>
           <select
             name="destination"
             className="w-full border rounded px-3 py-2"
@@ -178,7 +178,7 @@ const Transactions = () => {
           >
             <option value="">Pilih tujuan</option>
             {prices.map((p) => (
-              <option key={p.id} value={p.country}>
+              <option key={p.id} value={p.country} disabled={p.category === 'SENSITIF' || p.category === 'BATERAI'}>
                 {p.country} (Rp{Number(p.price_per_kg).toLocaleString('id-ID')}/kg, Rp{Number(p.price_per_volume).toLocaleString('id-ID')}/m³)
               </option>
             ))}
