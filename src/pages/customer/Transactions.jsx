@@ -267,7 +267,7 @@ const Transactions = () => {
         </div>
 
         {/* Identity Documents Section - Show if destination requires identity */}
-        {selectedPrice?.is_identity && (
+        {!!selectedPrice?.is_identity && (
           <div className="border-t pt-4 bg-yellow-50 p-4 rounded">
             <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
               <svg className="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
