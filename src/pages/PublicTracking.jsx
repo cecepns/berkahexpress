@@ -174,7 +174,7 @@ const PublicTracking = () => {
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      Status Perjalanan dari {tracking.transaction?.expedition?.name || 'Ekspedisi'}
+                      Status Perjalanan
                     </h3>
                     {tracking.transaction?.expedition_resi && (
                       <span className="text-sm text-gray-600">
@@ -301,14 +301,14 @@ const PublicTracking = () => {
         )}
 
         {/* Info Section */}
-        <div className="mt-8 text-center">
+        {/* <div className="mt-8 text-center">
           <p className="text-sm text-gray-600">
             Butuh bantuan? Hubungi customer service kami di{' '}
             <a href="tel:+628123456789" className="text-primary-600 hover:text-primary-500 font-medium">
               +62 812-3456-789
             </a>
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );
