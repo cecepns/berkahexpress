@@ -3,16 +3,19 @@ import { priceAPI, transactionAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import { useReactToPrint } from 'react-to-print';
-import { PrinterIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
+import { PrinterIcon, EyeIcon, MapPinIcon } from '@heroicons/react/24/outline';
 import ResiPrint from '../../components/ResiPrint';
 
 const Transactions = () => {
   const { refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const [prices, setPrices] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [form, setForm] = useState({
     destination: '',
     receiver_name: '',
@@ -41,6 +44,56 @@ const Transactions = () => {
     documentTitle: `Resi-${selectedTransaction?.resi || 'BerkahExpress'}`,
     onAfterPrint: () => toast.success('Resi berhasil dicetak!'),
   });
+
+  const openDetailModal = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowDetailModal(true);
+  };
+
+  const handleTrackPackage = (resi) => {
+    navigate(`/tracking?resi=${resi}`);
+  };
+
+  const handleReorder = (transaction) => {
+    // Fill form with transaction data
+    setForm({
+      destination: transaction.destination || '',
+      receiver_name: transaction.receiver_name || '',
+      receiver_phone: transaction.receiver_phone || '',
+      receiver_address: transaction.receiver_address || '',
+      item_category: transaction.item_category || 'NORMAL',
+      weight: transaction.weight ? String(transaction.weight) : '',
+      length: transaction.length ? String(transaction.length) : '',
+      width: transaction.width ? String(transaction.width) : '',
+      height: transaction.height ? String(transaction.height) : '',
+      kode_pos_penerima: transaction.kode_pos_penerima || '',
+      nomor_identitas_penerima: transaction.nomor_identitas_penerima || '',
+      email_penerima: transaction.email_penerima || '',
+    });
+    
+    // Close modal
+    setShowDetailModal(false);
+    
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    toast.info('Form telah diisi dengan data orderan sebelumnya');
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'text-yellow-600 bg-yellow-100';
+      case 'dikirim':
+        return 'text-blue-600 bg-blue-100';
+      case 'sukses':
+        return 'text-green-600 bg-green-100';
+      case 'canceled':
+        return 'text-red-600 bg-red-100';
+      default:
+        return 'text-gray-600 bg-gray-100';
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -446,18 +499,38 @@ const Transactions = () => {
                 <td className="p-2">{Number(t.weight)}</td>
                 <td className="p-2">{Number(t.volume).toFixed(3)}</td>
                 <td className="p-2">{Number(t.total_price).toLocaleString('id-ID')}</td>
-                <td className="p-2 capitalize">{t.status}</td>
                 <td className="p-2">
-                  <button
-                    onClick={() => {
-                      setSelectedTransaction(t);
-                      setTimeout(() => handlePrint(), 100);
-                    }}
-                    className="text-green-600 hover:text-green-900 p-1"
-                    title="Cetak Resi"
-                  >
-                    <PrinterIcon className="h-4 w-4" />
-                  </button>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(t.status)}`}>
+                    {t.status}
+                  </span>
+                </td>
+                <td className="p-2">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => openDetailModal(t)}
+                      className="text-blue-600 hover:text-blue-900 p-1"
+                      title="Lihat Detail"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleTrackPackage(t.resi)}
+                      className="text-purple-600 hover:text-purple-900 p-1"
+                      title="Lacak Paket"
+                    >
+                      <MapPinIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedTransaction(t);
+                        setTimeout(() => handlePrint(), 100);
+                      }}
+                      className="text-green-600 hover:text-green-900 p-1"
+                      title="Cetak Resi"
+                    >
+                      <PrinterIcon className="h-4 w-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -469,6 +542,125 @@ const Transactions = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedTransaction && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-md bg-white my-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Detail Transaksi
+            </h3>
+            
+            <div className="space-y-4">
+              {/* Transaction Info */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Resi</label>
+                <p className="mt-1 text-sm font-mono font-semibold text-gray-900">{selectedTransaction.resi}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Status</label>
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedTransaction.status)}`}>
+                  {selectedTransaction.status}
+                </span>
+              </div>
+
+              {selectedTransaction.expedition_resi && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Resi Ekspedisi</label>
+                  <p className="mt-1 text-sm font-mono font-semibold text-blue-600">{selectedTransaction.expedition_resi}</p>
+                </div>
+              )}
+
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Informasi Penerima</h4>
+                <p className="text-sm text-gray-900">Negara: {selectedTransaction.destination}</p>
+                {selectedTransaction.receiver_name && (
+                  <p className="text-sm font-medium text-gray-900 mt-2">Nama: {selectedTransaction.receiver_name}</p>
+                )}
+                {selectedTransaction.receiver_phone && (
+                  <p className="text-sm text-gray-500">Telp: {selectedTransaction.receiver_phone}</p>
+                )}
+                {selectedTransaction.receiver_address && (
+                  <p className="text-sm text-gray-500">Alamat: {selectedTransaction.receiver_address}</p>
+                )}
+                {selectedTransaction.email_penerima && (
+                  <p className="text-sm text-gray-500">Email: {selectedTransaction.email_penerima}</p>
+                )}
+                {selectedTransaction.kode_pos_penerima && (
+                  <p className="text-sm text-gray-500">Kode Pos: {selectedTransaction.kode_pos_penerima}</p>
+                )}
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Dimensi & Berat</h4>
+                <p className="text-sm text-gray-900">Berat: {selectedTransaction.weight} kg</p>
+                <p className="text-sm text-gray-900">
+                  Dimensi: {selectedTransaction.length} x {selectedTransaction.width} x {selectedTransaction.height} cm
+                </p>
+                <p className="text-sm text-gray-500">Volume: {selectedTransaction.volume ? Number(selectedTransaction.volume).toFixed(4) : '0.0000'} m³</p>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Biaya</h4>
+                <p className="text-sm text-gray-500">Harga per KG: Rp {selectedTransaction.price_per_kg ? Number(selectedTransaction.price_per_kg).toLocaleString('id-ID') : '0'}</p>
+                <p className="text-sm text-gray-500">Harga per Vol: Rp {selectedTransaction.price_per_volume ? Number(selectedTransaction.price_per_volume).toLocaleString('id-ID') : '0'}</p>
+                <p className="mt-2 text-lg font-semibold text-primary-600">
+                  Total: Rp {selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID') : '0'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Tanggal Transaksi</label>
+                <p className="mt-1 text-sm text-gray-900">
+                  {new Date(selectedTransaction.created_at).toLocaleString('id-ID')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-6 border-t mt-6">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleReorder(selectedTransaction)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md flex items-center gap-2"
+                  title="Buat pesanan baru dengan data yang sama"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Reorder
+                </button>
+                <button
+                  onClick={() => handleTrackPackage(selectedTransaction.resi)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md flex items-center gap-2"
+                >
+                  <MapPinIcon className="h-5 w-5" />
+                  Lacak Paket
+                </button>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    setTimeout(() => handlePrint(), 100);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md flex items-center gap-2"
+                >
+                  <PrinterIcon className="h-5 w-5" />
+                  Cetak Resi
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDetailModal(false);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hidden Print Component */}
       <div style={{ display: 'none' }}>

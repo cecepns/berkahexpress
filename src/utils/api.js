@@ -102,6 +102,7 @@ export const transactionAPI = {
   createTransaction: (transactionData) => api.post('/transactions', transactionData),
   updateTransactionStatus: (id, status) => api.put(`/transactions/${id}/status`, { status }),
   updateTransactionExpedition: (id, expeditionData) => api.put(`/transactions/${id}/expedition`, expeditionData),
+  cancelTransaction: (id) => api.put(`/transactions/${id}/cancel`),
   getTransactionById: (id) => api.get(`/transactions/${id}`),
 };
 

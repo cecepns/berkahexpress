@@ -6,7 +6,8 @@ import {
   EyeIcon,
   MagnifyingGlassIcon,
   TruckIcon,
-  PrinterIcon
+  PrinterIcon,
+  XCircleIcon
 } from '@heroicons/react/24/outline';
 import ResiPrint from '../../components/ResiPrint';
 
@@ -66,6 +67,20 @@ const TransactionManagement = () => {
     }
   };
 
+  const handleCancelOrder = async (transaction) => {
+    if (!window.confirm(`Apakah Anda yakin ingin membatalkan pesanan dengan resi ${transaction.resi}? Saldo akan dikembalikan ke customer.`)) {
+      return;
+    }
+
+    try {
+      await transactionAPI.cancelTransaction(transaction.id);
+      toast.success(`Pesanan berhasil dibatalkan. Saldo Rp ${Number(transaction.total_price).toLocaleString('id-ID')} telah dikembalikan.`);
+      fetchTransactions();
+    } catch (error) {
+      console.error('Error canceling transaction:', error);
+    }
+  };
+
   const handleExpeditionUpdate = async (e) => {
     e.preventDefault();
     if (!expeditionForm.expedition_id || !expeditionForm.expedition_resi) {
@@ -106,6 +121,8 @@ const TransactionManagement = () => {
         return 'text-blue-600 bg-blue-100';
       case 'sukses':
         return 'text-green-600 bg-green-100';
+      case 'canceled':
+        return 'text-red-600 bg-red-100';
       default:
         return 'text-gray-600 bg-gray-100';
     }
@@ -156,6 +173,7 @@ const TransactionManagement = () => {
             <option value="pending">Pending</option>
             <option value="dikirim">Dikirim</option>
             <option value="sukses">Sukses</option>
+            <option value="canceled">Canceled</option>
           </select>
         </div>
       </div>
@@ -256,6 +274,15 @@ const TransactionManagement = () => {
                     >
                       <PrinterIcon className="h-4 w-4" />
                     </button>
+                    {transaction.status === 'pending' && (
+                      <button
+                        onClick={() => handleCancelOrder(transaction)}
+                        className="text-red-600 hover:text-red-900 p-1"
+                        title="Batalkan Pesanan"
+                      >
+                        <XCircleIcon className="h-4 w-4" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -474,6 +501,26 @@ const TransactionManagement = () => {
                     >
                       Tandai Sukses
                     </button>
+                  </div>
+                )}
+
+                {/* Cancel Order Button */}
+                {selectedTransaction.status === 'pending' && (
+                  <div className="border-l pl-6 border-t pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Batalkan Pesanan</label>
+                    <button
+                      onClick={() => {
+                        setShowModal(false);
+                        handleCancelOrder(selectedTransaction);
+                      }}
+                      className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md flex items-center justify-center gap-2"
+                    >
+                      <XCircleIcon className="h-5 w-5" />
+                      Batalkan Pesanan
+                    </button>
+                    <p className="mt-2 text-xs text-gray-500">
+                      Saldo customer sebesar Rp {selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID') : '0'} akan dikembalikan
+                    </p>
                   </div>
                 )}
               </div>

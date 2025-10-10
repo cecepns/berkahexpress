@@ -1223,6 +1223,98 @@ app.put('/api/transactions/:id/status', authenticateToken, adminOnly, (req, res)
   );
 });
 
+// Cancel transaction (admin only - for pending orders)
+app.put('/api/transactions/:id/cancel', authenticateToken, adminOnly, (req, res) => {
+  const transactionId = req.params.id;
+
+  // Get transaction details
+  db.query(
+    'SELECT * FROM transactions WHERE id = ?',
+    [transactionId],
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+
+      const transaction = results[0];
+
+      // Only allow cancellation for pending transactions
+      if (transaction.status !== 'pending') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Only pending transactions can be cancelled' 
+        });
+      }
+
+      // Start transaction
+      db.beginTransaction((err) => {
+        if (err) {
+          return res.status(500).json({ success: false, message: 'Transaction error' });
+        }
+
+        // Update transaction status to canceled
+        db.query(
+          'UPDATE transactions SET status = ? WHERE id = ?',
+          ['canceled', transactionId],
+          (err, updateResults) => {
+            if (err) {
+              return db.rollback(() => {
+                res.status(500).json({ success: false, message: 'Database error' });
+              });
+            }
+
+            // Refund the customer's balance
+            db.query(
+              'UPDATE users SET balance = balance + ? WHERE id = ?',
+              [transaction.total_price, transaction.user_id],
+              (err, balanceResults) => {
+                if (err) {
+                  return db.rollback(() => {
+                    res.status(500).json({ success: false, message: 'Database error refunding balance' });
+                  });
+                }
+
+                // Add tracking update
+                db.query(
+                  'INSERT INTO tracking_updates (transaction_id, status, description) VALUES (?, ?, ?)',
+                  [transactionId, 'canceled', 'Pesanan dibatalkan oleh admin. Saldo telah dikembalikan ke akun pelanggan.'],
+                  (err, trackingResults) => {
+                    if (err) {
+                      return db.rollback(() => {
+                        res.status(500).json({ success: false, message: 'Database error adding tracking' });
+                      });
+                    }
+
+                    db.commit((err) => {
+                      if (err) {
+                        return db.rollback(() => {
+                          res.status(500).json({ success: false, message: 'Commit error' });
+                        });
+                      }
+
+                      res.json({ 
+                        success: true, 
+                        message: 'Transaction cancelled successfully and balance refunded',
+                        data: {
+                          refunded_amount: transaction.total_price
+                        }
+                      });
+                    });
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+    }
+  );
+});
+
 // Get transaction by ID
 app.get('/api/transactions/:id', authenticateToken, (req, res) => {
   const transactionId = req.params.id;

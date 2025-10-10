@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { trackingAPI } from '../utils/api';
 import { toast } from 'react-toastify';
 import { TruckIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
@@ -6,14 +7,14 @@ import axios from 'axios';
 import logo from '../assets/logo.png';
 
 const PublicTracking = () => {
+  const [searchParams] = useSearchParams();
   const [resi, setResi] = useState('');
   const [tracking, setTracking] = useState(null);
   const [externalTracking, setExternalTracking] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!resi.trim()) {
+  const searchTracking = async (resiNumber) => {
+    if (!resiNumber.trim()) {
       toast.error('Mohon masukkan nomor resi');
       return;
     }
@@ -22,7 +23,7 @@ const PublicTracking = () => {
     setExternalTracking(null);
     
     try {
-      const response = await trackingAPI.getTrackingByResi(resi);
+      const response = await trackingAPI.getTrackingByResi(resiNumber);
       const trackingData = response.data.data;
       setTracking(trackingData);
 
@@ -49,6 +50,20 @@ const PublicTracking = () => {
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    searchTracking(resi);
+  };
+
+  // Auto-search when resi parameter is present in URL
+  useEffect(() => {
+    const resiParam = searchParams.get('resi');
+    if (resiParam) {
+      setResi(resiParam);
+      searchTracking(resiParam);
+    }
+  }, [searchParams]);
+
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending':
@@ -57,6 +72,8 @@ const PublicTracking = () => {
         return 'text-blue-600 bg-blue-100';
       case 'sukses':
         return 'text-green-600 bg-green-100';
+      case 'canceled':
+        return 'text-red-600 bg-red-100';
       default:
         return 'text-gray-600 bg-gray-100';
     }
