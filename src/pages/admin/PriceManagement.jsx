@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { priceAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
 import { 
   PlusIcon, 
   PencilIcon, 
   TrashIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const PriceManagement = () => {
@@ -21,7 +22,9 @@ const PriceManagement = () => {
     price_per_volume: '',
     price_per_kg_mitra: '',
     price_per_volume_mitra: '',
-    is_identity: false
+    is_identity: false,
+    use_tiered_pricing: false,
+    tiers: []
   });
 
   useEffect(() => {
@@ -41,6 +44,25 @@ const PriceManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate tiers if using tiered pricing
+    if (formData.use_tiered_pricing) {
+      if (formData.tiers.length === 0) {
+        toast.error('Minimal harus ada 1 tier untuk tiered pricing');
+        return;
+      }
+      
+      // Validate each tier
+      for (let i = 0; i < formData.tiers.length; i++) {
+        const tier = formData.tiers[i];
+        if (!tier.min_weight || !tier.price_per_kg || !tier.price_per_volume || 
+            !tier.price_per_kg_mitra || !tier.price_per_volume_mitra) {
+          toast.error(`Tier ${i + 1}: Semua field harus diisi`);
+          return;
+        }
+      }
+    }
+    
     try {
       if (editingPrice) {
         await priceAPI.updatePrice(editingPrice.id, formData);
@@ -50,9 +72,7 @@ const PriceManagement = () => {
         toast.success('Harga berhasil ditambahkan');
       }
       
-      setShowModal(false);
-      setEditingPrice(null);
-      setFormData({ country: '', price_per_kg: '', price_per_volume: '' });
+      closeModal();
       fetchPrices();
     } catch (error) {
       console.error('Error saving price:', error);
@@ -64,11 +84,13 @@ const PriceManagement = () => {
     setFormData({
       country: price.country,
       category: price.category || 'NORMAL',
-      price_per_kg: price.price_per_kg,
-      price_per_volume: price.price_per_volume,
-      price_per_kg_mitra: price.price_per_kg_mitra,
-      price_per_volume_mitra: price.price_per_volume_mitra,
-      is_identity: price.is_identity || false
+      price_per_kg: price.price_per_kg || '',
+      price_per_volume: price.price_per_volume || '',
+      price_per_kg_mitra: price.price_per_kg_mitra || '',
+      price_per_volume_mitra: price.price_per_volume_mitra || '',
+      is_identity: price.is_identity || false,
+      use_tiered_pricing: price.use_tiered_pricing || false,
+      tiers: price.tiers || []
     });
     setShowModal(true);
   };
@@ -83,6 +105,58 @@ const PriceManagement = () => {
         console.error('Error deleting price:', error);
       }
     }
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingPrice(null);
+    setFormData({ 
+      country: '', 
+      category: 'NORMAL',
+      price_per_kg: '', 
+      price_per_volume: '',
+      price_per_kg_mitra: '',
+      price_per_volume_mitra: '',
+      is_identity: false,
+      use_tiered_pricing: false,
+      tiers: []
+    });
+  };
+
+  const addTier = () => {
+    const lastTier = formData.tiers[formData.tiers.length - 1];
+    const newMinWeight = lastTier ? (lastTier.max_weight ? parseFloat(lastTier.max_weight) + 0.01 : 0) : 0;
+    
+    setFormData({
+      ...formData,
+      tiers: [
+        ...formData.tiers,
+        {
+          min_weight: newMinWeight,
+          max_weight: null,
+          price_per_kg: '',
+          price_per_volume: '',
+          price_per_kg_mitra: '',
+          price_per_volume_mitra: ''
+        }
+      ]
+    });
+  };
+
+  const removeTier = (index) => {
+    setFormData({
+      ...formData,
+      tiers: formData.tiers.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateTier = (index, field, value) => {
+    const updatedTiers = [...formData.tiers];
+    updatedTiers[index][field] = value;
+    setFormData({
+      ...formData,
+      tiers: updatedTiers
+    });
   };
 
   const filteredPrices = prices.filter(price =>
@@ -101,7 +175,7 @@ const PriceManagement = () => {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Manajemen Harga</h1>
-        <p className="mt-2 text-gray-600">Kelola harga pengiriman berdasarkan negara tujuan</p>
+        <p className="mt-2 text-gray-600">Kelola harga pengiriman berdasarkan negara tujuan dengan opsi tiered pricing</p>
       </div>
 
       {/* Search and Actions */}
@@ -138,13 +212,13 @@ const PriceManagement = () => {
                   Kategori
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Harga Customer
+                  Tipe Harga
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Harga Mitra
+                  Detail Harga
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Identity Required
+                  Identity
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Aksi
@@ -167,20 +241,38 @@ const PriceManagement = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-xs text-gray-900">
-                      KG: Rp {price.price_per_kg ? Number(price.price_per_kg).toLocaleString('id-ID') : '0'}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Vol: Rp {price.price_per_volume ? Number(price.price_per_volume).toLocaleString('id-ID') : '0'}
-                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      price.use_tiered_pricing ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {price.use_tiered_pricing ? 'Tiered' : 'Flat'}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-xs text-gray-900">
-                      KG: Rp {price.price_per_kg_mitra ? Number(price.price_per_kg_mitra).toLocaleString('id-ID') : '0'}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Vol: Rp {price.price_per_volume_mitra ? Number(price.price_per_volume_mitra).toLocaleString('id-ID') : '0'}
-                    </div>
+                  <td className="px-6 py-4">
+                    {price.use_tiered_pricing ? (
+                      <div className="text-xs space-y-1">
+                        {price.tiers && price.tiers.length > 0 ? (
+                          price.tiers.map((tier, idx) => (
+                            <div key={idx} className="text-gray-700">
+                              <span className="font-medium">
+                                {tier.min_weight} - {tier.max_weight ? tier.max_weight : '∞'} Kg:
+                              </span>
+                              {' '}Rp {Number(tier.price_per_kg).toLocaleString('id-ID')}/Kg
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-gray-500">Belum ada tier</span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs space-y-1">
+                        <div className="text-gray-700">
+                          <span className="font-medium">Customer:</span> Rp {Number(price.price_per_kg).toLocaleString('id-ID')}/Kg
+                        </div>
+                        <div className="text-gray-700">
+                          <span className="font-medium">Mitra:</span> Rp {Number(price.price_per_kg_mitra).toLocaleString('id-ID')}/Kg
+                        </div>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     {price.is_identity ? (
@@ -227,10 +319,19 @@ const PriceManagement = () => {
       {/* Add/Edit Price Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white my-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              {editingPrice ? 'Edit Harga' : 'Tambah Harga'}
-            </h3>
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white my-6 mb-20">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                {editingPrice ? 'Edit Harga' : 'Tambah Harga'}
+              </h3>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -260,68 +361,234 @@ const PriceManagement = () => {
               </div>
 
               <div className="border-t pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Harga Customer Biasa</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Harga per KG (Rp)</label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                      value={formData.price_per_kg}
-                      onChange={(e) => setFormData({...formData, price_per_kg: e.target.value})}
-                      placeholder="25000"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Harga per Volume m³ (Rp)</label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                      value={formData.price_per_volume}
-                      onChange={(e) => setFormData({...formData, price_per_volume: e.target.value})}
-                      placeholder="5000"
-                    />
-                  </div>
-                </div>
+                <label className="flex items-center space-x-2 mb-3">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                    checked={formData.use_tiered_pricing}
+                    onChange={(e) => setFormData({...formData, use_tiered_pricing: e.target.checked, tiers: e.target.checked ? formData.tiers : []})}
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Gunakan Tiered Pricing (Harga Bertingkat)
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Aktifkan untuk membuat harga berbeda berdasarkan range berat (contoh: 1-5 Kg lebih murah dari 0.5 Kg)
+                </p>
               </div>
 
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Harga Mitra</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Harga per KG (Rp)</label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                      value={formData.price_per_kg_mitra}
-                      onChange={(e) => setFormData({...formData, price_per_kg_mitra: e.target.value})}
-                      placeholder="20000"
-                    />
+              {!formData.use_tiered_pricing ? (
+                // Flat Pricing Form
+                <>
+                  <div className="border-t pt-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Harga Customer Biasa</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Harga per KG (Rp)</label>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          step="0.01"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                          value={formData.price_per_kg}
+                          onChange={(e) => setFormData({...formData, price_per_kg: e.target.value})}
+                          placeholder="25000"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Harga per Volume m³ (Rp)</label>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          step="0.01"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                          value={formData.price_per_volume}
+                          onChange={(e) => setFormData({...formData, price_per_volume: e.target.value})}
+                          placeholder="5000"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Harga per Volume m³ (Rp)</label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                      value={formData.price_per_volume_mitra}
-                      onChange={(e) => setFormData({...formData, price_per_volume_mitra: e.target.value})}
-                      placeholder="4000"
-                    />
+
+                  <div className="border-t pt-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Harga Mitra</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Harga per KG (Rp)</label>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          step="0.01"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                          value={formData.price_per_kg_mitra}
+                          onChange={(e) => setFormData({...formData, price_per_kg_mitra: e.target.value})}
+                          placeholder="20000"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Harga per Volume m³ (Rp)</label>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          step="0.01"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                          value={formData.price_per_volume_mitra}
+                          onChange={(e) => setFormData({...formData, price_per_volume_mitra: e.target.value})}
+                          placeholder="4000"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Tiered Pricing Form
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-semibold text-gray-700">Tier Harga</h4>
+                    <button
+                      type="button"
+                      onClick={addTier}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+                    >
+                      <PlusIcon className="h-4 w-4 mr-1" />
+                      Tambah Tier
+                    </button>
+                  </div>
+                  
+                  {formData.tiers.length === 0 ? (
+                    <div className="bg-gray-50 rounded-md p-4 text-center">
+                      <p className="text-sm text-gray-500">Belum ada tier. Klik &ldquo;Tambah Tier&rdquo; untuk memulai.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {formData.tiers.map((tier, index) => (
+                        <div key={index} className="border border-gray-200 rounded-md p-4 relative">
+                          <div className="absolute top-2 right-2">
+                            <button
+                              type="button"
+                              onClick={() => removeTier(index)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <XMarkIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                          
+                          <h5 className="text-sm font-medium text-gray-700 mb-3">Tier {index + 1}</h5>
+                          
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700">Min Berat (Kg)</label>
+                              <input
+                                type="number"
+                                required
+                                min="0"
+                                step="0.01"
+                                className="mt-1 block w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                                value={tier.min_weight}
+                                onChange={(e) => updateTier(index, 'min_weight', e.target.value)}
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700">
+                                Max Berat (Kg) 
+                                <span className="text-gray-500 font-normal"> - kosongkan untuk unlimited</span>
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                className="mt-1 block w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                                value={tier.max_weight || ''}
+                                onChange={(e) => updateTier(index, 'max_weight', e.target.value || null)}
+                                placeholder="∞"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <h6 className="text-xs font-semibold text-gray-600 mb-2">Harga Customer</h6>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700">Per KG (Rp)</label>
+                                <input
+                                  type="number"
+                                  required
+                                  min="0"
+                                  step="0.01"
+                                  className="mt-1 block w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                                  value={tier.price_per_kg}
+                                  onChange={(e) => updateTier(index, 'price_per_kg', e.target.value)}
+                                  placeholder="210000"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700">Per m³ (Rp)</label>
+                                <input
+                                  type="number"
+                                  required
+                                  min="0"
+                                  step="0.01"
+                                  className="mt-1 block w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                                  value={tier.price_per_volume}
+                                  onChange={(e) => updateTier(index, 'price_per_volume', e.target.value)}
+                                  placeholder="50000"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h6 className="text-xs font-semibold text-gray-600 mb-2">Harga Mitra</h6>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700">Per KG (Rp)</label>
+                                <input
+                                  type="number"
+                                  required
+                                  min="0"
+                                  step="0.01"
+                                  className="mt-1 block w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                                  value={tier.price_per_kg_mitra}
+                                  onChange={(e) => updateTier(index, 'price_per_kg_mitra', e.target.value)}
+                                  placeholder="180000"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700">Per m³ (Rp)</label>
+                                <input
+                                  type="number"
+                                  required
+                                  min="0"
+                                  step="0.01"
+                                  className="mt-1 block w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                                  value={tier.price_per_volume_mitra}
+                                  onChange={(e) => updateTier(index, 'price_per_volume_mitra', e.target.value)}
+                                  placeholder="40000"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="bg-blue-50 p-3 rounded-md mt-4">
+                    <p className="text-xs text-blue-600">
+                      <strong>Contoh Tiered Pricing:</strong><br/>
+                      • 0 - 1 Kg: Rp 210.000/Kg<br/>
+                      • 2 - 5 Kg: Rp 160.000/Kg<br/>
+                      • 6 - 10 Kg: Rp 150.000/Kg<br/>
+                      • 11+ Kg: Rp 140.000/Kg (max_weight kosong)
+                    </p>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="border-t pt-4">
                 <label className="flex items-center space-x-2">
@@ -346,22 +613,10 @@ const PriceManagement = () => {
                 </p>
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end space-x-3 pt-4 border-t">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    setEditingPrice(null);
-                    setFormData({ 
-                      country: '', 
-                      category: 'NORMAL',
-                      price_per_kg: '', 
-                      price_per_volume: '',
-                      price_per_kg_mitra: '',
-                      price_per_volume_mitra: '',
-                      is_identity: false
-                    });
-                  }}
+                  onClick={closeModal}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
                 >
                   Batal

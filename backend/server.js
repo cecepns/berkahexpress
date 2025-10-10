@@ -284,13 +284,43 @@ app.delete('/api/users/:id', authenticateToken, adminOnly, (req, res) => {
 
 // ==================== PRICE MANAGEMENT ROUTES ====================
 
-// Get all prices
+// Get all prices with their tiers
 app.get('/api/prices', (req, res) => {
   db.query('SELECT * FROM prices ORDER BY country, category', (err, results) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error' });
     }
-    res.json({ success: true, data: results });
+    
+    // Get tiers for each price
+    const pricesWithTiers = [];
+    let processed = 0;
+    
+    if (results.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+    
+    results.forEach((price) => {
+      db.query(
+        'SELECT * FROM price_tiers WHERE price_id = ? ORDER BY min_weight ASC',
+        [price.id],
+        (err, tiers) => {
+          if (err) {
+            console.error('Error fetching tiers:', err);
+            tiers = [];
+          }
+          
+          pricesWithTiers.push({
+            ...price,
+            tiers: tiers || []
+          });
+          
+          processed++;
+          if (processed === results.length) {
+            res.json({ success: true, data: pricesWithTiers });
+          }
+        }
+      );
+    });
   });
 });
 
@@ -315,7 +345,7 @@ app.get('/api/prices/:country/:category', (req, res) => {
   );
 });
 
-// Create price
+// Create price with optional tiers
 app.post('/api/prices', authenticateToken, adminOnly, (req, res) => {
   const { 
     country, 
@@ -324,35 +354,115 @@ app.post('/api/prices', authenticateToken, adminOnly, (req, res) => {
     price_per_volume, 
     price_per_kg_mitra, 
     price_per_volume_mitra, 
-    is_identity 
+    is_identity,
+    use_tiered_pricing,
+    tiers
   } = req.body;
 
-  if (!country || !category || !price_per_kg || !price_per_volume || !price_per_kg_mitra || !price_per_volume_mitra) {
-    return res.status(400).json({ success: false, message: 'All fields are required' });
+  if (!country || !category) {
+    return res.status(400).json({ success: false, message: 'Country and category are required' });
   }
 
-  db.query(
-    `INSERT INTO prices (country, category, price_per_kg, price_per_volume, price_per_kg_mitra, price_per_volume_mitra, is_identity) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [country, category, price_per_kg, price_per_volume, price_per_kg_mitra, price_per_volume_mitra, is_identity || false],
-    (err, results) => {
-      if (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
-          return res.status(400).json({ success: false, message: 'Price for this country and category already exists' });
-        }
-        return res.status(500).json({ success: false, message: 'Database error' });
-      }
+  // If not using tiered pricing, regular prices are required
+  if (!use_tiered_pricing && (!price_per_kg || !price_per_volume || !price_per_kg_mitra || !price_per_volume_mitra)) {
+    return res.status(400).json({ success: false, message: 'All price fields are required for non-tiered pricing' });
+  }
 
-      res.status(201).json({
-        success: true,
-        message: 'Price created successfully',
-        data: { id: results.insertId }
-      });
+  // If using tiered pricing, tiers are required
+  if (use_tiered_pricing && (!tiers || tiers.length === 0)) {
+    return res.status(400).json({ success: false, message: 'At least one tier is required for tiered pricing' });
+  }
+
+  db.beginTransaction((err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Transaction error' });
     }
-  );
+
+    db.query(
+      `INSERT INTO prices (country, category, price_per_kg, price_per_volume, price_per_kg_mitra, price_per_volume_mitra, is_identity, use_tiered_pricing) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        country, 
+        category, 
+        price_per_kg || 0, 
+        price_per_volume || 0, 
+        price_per_kg_mitra || 0, 
+        price_per_volume_mitra || 0, 
+        is_identity || false,
+        use_tiered_pricing || false
+      ],
+      (err, results) => {
+        if (err) {
+          return db.rollback(() => {
+            if (err.code === 'ER_DUP_ENTRY') {
+              return res.status(400).json({ success: false, message: 'Price for this country and category already exists' });
+            }
+            return res.status(500).json({ success: false, message: 'Database error' });
+          });
+        }
+
+        const priceId = results.insertId;
+
+        // If using tiered pricing, insert tiers
+        if (use_tiered_pricing && tiers && tiers.length > 0) {
+          const tierValues = tiers.map(tier => [
+            priceId,
+            tier.min_weight,
+            tier.max_weight,
+            tier.price_per_kg,
+            tier.price_per_volume,
+            tier.price_per_kg_mitra,
+            tier.price_per_volume_mitra
+          ]);
+
+          db.query(
+            `INSERT INTO price_tiers (price_id, min_weight, max_weight, price_per_kg, price_per_volume, price_per_kg_mitra, price_per_volume_mitra) 
+             VALUES ?`,
+            [tierValues],
+            (err) => {
+              if (err) {
+                return db.rollback(() => {
+                  console.error('Error inserting tiers:', err);
+                  res.status(500).json({ success: false, message: 'Error creating price tiers' });
+                });
+              }
+
+              db.commit((err) => {
+                if (err) {
+                  return db.rollback(() => {
+                    res.status(500).json({ success: false, message: 'Commit error' });
+                  });
+                }
+
+                res.status(201).json({
+                  success: true,
+                  message: 'Price created successfully with tiers',
+                  data: { id: priceId }
+                });
+              });
+            }
+          );
+        } else {
+          db.commit((err) => {
+            if (err) {
+              return db.rollback(() => {
+                res.status(500).json({ success: false, message: 'Commit error' });
+              });
+            }
+
+            res.status(201).json({
+              success: true,
+              message: 'Price created successfully',
+              data: { id: priceId }
+            });
+          });
+        }
+      }
+    );
+  });
 });
 
-// Update price
+// Update price with tiers
 app.put('/api/prices/:id', authenticateToken, adminOnly, (req, res) => {
   const priceId = req.params.id;
   const { 
@@ -362,30 +472,110 @@ app.put('/api/prices/:id', authenticateToken, adminOnly, (req, res) => {
     price_per_volume, 
     price_per_kg_mitra, 
     price_per_volume_mitra, 
-    is_identity 
+    is_identity,
+    use_tiered_pricing,
+    tiers
   } = req.body;
 
-  db.query(
-    `UPDATE prices 
-     SET country = ?, category = ?, price_per_kg = ?, price_per_volume = ?, 
-         price_per_kg_mitra = ?, price_per_volume_mitra = ?, is_identity = ? 
-     WHERE id = ?`,
-    [country, category, price_per_kg, price_per_volume, price_per_kg_mitra, price_per_volume_mitra, is_identity, priceId],
-    (err, results) => {
-      if (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
-          return res.status(400).json({ success: false, message: 'Price for this country and category already exists' });
-        }
-        return res.status(500).json({ success: false, message: 'Database error' });
-      }
+  if (!country || !category) {
+    return res.status(400).json({ success: false, message: 'Country and category are required' });
+  }
 
-      if (results.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Price not found' });
-      }
-
-      res.json({ success: true, message: 'Price updated successfully' });
+  db.beginTransaction((err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Transaction error' });
     }
-  );
+
+    db.query(
+      `UPDATE prices 
+       SET country = ?, category = ?, price_per_kg = ?, price_per_volume = ?, 
+           price_per_kg_mitra = ?, price_per_volume_mitra = ?, is_identity = ?, use_tiered_pricing = ? 
+       WHERE id = ?`,
+      [
+        country, 
+        category, 
+        price_per_kg || 0, 
+        price_per_volume || 0, 
+        price_per_kg_mitra || 0, 
+        price_per_volume_mitra || 0, 
+        is_identity || false, 
+        use_tiered_pricing || false, 
+        priceId
+      ],
+      (err, results) => {
+        if (err) {
+          return db.rollback(() => {
+            if (err.code === 'ER_DUP_ENTRY') {
+              return res.status(400).json({ success: false, message: 'Price for this country and category already exists' });
+            }
+            return res.status(500).json({ success: false, message: 'Database error' });
+          });
+        }
+
+        if (results.affectedRows === 0) {
+          return db.rollback(() => {
+            res.status(404).json({ success: false, message: 'Price not found' });
+          });
+        }
+
+        // Delete existing tiers
+        db.query('DELETE FROM price_tiers WHERE price_id = ?', [priceId], (err) => {
+          if (err) {
+            return db.rollback(() => {
+              res.status(500).json({ success: false, message: 'Error deleting old tiers' });
+            });
+          }
+
+          // If using tiered pricing, insert new tiers
+          if (use_tiered_pricing && tiers && tiers.length > 0) {
+            const tierValues = tiers.map(tier => [
+              priceId,
+              tier.min_weight,
+              tier.max_weight,
+              tier.price_per_kg,
+              tier.price_per_volume,
+              tier.price_per_kg_mitra,
+              tier.price_per_volume_mitra
+            ]);
+
+            db.query(
+              `INSERT INTO price_tiers (price_id, min_weight, max_weight, price_per_kg, price_per_volume, price_per_kg_mitra, price_per_volume_mitra) 
+               VALUES ?`,
+              [tierValues],
+              (err) => {
+                if (err) {
+                  return db.rollback(() => {
+                    console.error('Error inserting tiers:', err);
+                    res.status(500).json({ success: false, message: 'Error creating price tiers' });
+                  });
+                }
+
+                db.commit((err) => {
+                  if (err) {
+                    return db.rollback(() => {
+                      res.status(500).json({ success: false, message: 'Commit error' });
+                    });
+                  }
+
+                  res.json({ success: true, message: 'Price updated successfully with tiers' });
+                });
+              }
+            );
+          } else {
+            db.commit((err) => {
+              if (err) {
+                return db.rollback(() => {
+                  res.status(500).json({ success: false, message: 'Commit error' });
+                });
+              }
+
+              res.json({ success: true, message: 'Price updated successfully' });
+            });
+          }
+        });
+      }
+    );
+  });
 });
 
 // Delete price
@@ -797,111 +987,152 @@ app.post('/api/transactions', authenticateToken, upload.fields([
       const price = priceResults[0];
       const volume = (length * width * height) / 1000000; // Convert to cubic meters
       
-      // Determine which price to use based on user role
-      const pricePerKg = userRole === 'mitra' ? price.price_per_kg_mitra : price.price_per_kg;
-      const pricePerVolume = userRole === 'mitra' ? price.price_per_volume_mitra : price.price_per_volume;
-      
-      const weightPrice = weight * pricePerKg;
-      const volumePrice = volume * pricePerVolume;
-      const totalPrice = Math.max(weightPrice, volumePrice); // Use higher price
-
-      // Check user balance
-      db.query('SELECT balance FROM users WHERE id = ?', [req.user.id], (err, userResults) => {
-        if (err) {
-          return res.status(500).json({ success: false, message: 'Database error' });
-        }
-
-        const userBalance = userResults[0].balance;
-
-        if (userBalance < totalPrice) {
-          return res.status(400).json({ 
-            success: false, 
-            message: 'Insufficient balance. Please top up your account.' 
-          });
-        }
-
-        const resi = generateResi();
-
-        // Get uploaded files
-        const fotoAlamat = req.files?.foto_alamat ? req.files.foto_alamat[0].filename : null;
-        const tandaPengenalDepan = req.files?.tanda_pengenal_depan ? req.files.tanda_pengenal_depan[0].filename : null;
-        const tandaPengenalBelakang = req.files?.tanda_pengenal_belakang ? req.files.tanda_pengenal_belakang[0].filename : null;
-
-        // Start transaction
-        db.beginTransaction((err) => {
-          if (err) {
-            return res.status(500).json({ success: false, message: 'Transaction error' });
-          }
-
-          // Create transaction record
+      // Function to calculate price based on tiered or flat pricing
+      const calculatePrice = (callback) => {
+        if (price.use_tiered_pricing) {
+          // Get applicable tier based on weight
           db.query(
-            `INSERT INTO transactions 
-             (user_id, resi, destination, receiver_name, receiver_phone, receiver_address, item_category,
-              weight, length, width, height, volume, 
-              price_per_kg, price_per_volume, total_price,
-              foto_alamat, kode_pos_penerima, tanda_pengenal_depan, tanda_pengenal_belakang,
-              nomor_identitas_penerima, email_penerima) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              req.user.id, resi, destination, receiver_name, receiver_phone, receiver_address, item_category,
-              weight, length, width, height, volume, 
-              pricePerKg, pricePerVolume, totalPrice,
-              fotoAlamat, kode_pos_penerima || null, tandaPengenalDepan, tandaPengenalBelakang,
-              nomor_identitas_penerima || null, email_penerima || null
-            ],
-            (err, transactionResults) => {
+            `SELECT * FROM price_tiers 
+             WHERE price_id = ? 
+             AND min_weight <= ? 
+             AND (max_weight >= ? OR max_weight IS NULL)
+             ORDER BY min_weight DESC
+             LIMIT 1`,
+            [price.id, weight, weight],
+            (err, tierResults) => {
               if (err) {
-                console.error('Transaction insert error:', err);
-                return db.rollback(() => {
-                  res.status(500).json({ success: false, message: 'Database error' });
-                });
+                return res.status(500).json({ success: false, message: 'Database error fetching tiers' });
               }
 
-              // Deduct user balance
-              db.query(
-                'UPDATE users SET balance = balance - ? WHERE id = ?',
-                [totalPrice, req.user.id],
-                (err, updateResults) => {
-                  if (err) {
-                    return db.rollback(() => {
-                      res.status(500).json({ success: false, message: 'Database error' });
-                    });
-                  }
+              if (tierResults.length === 0) {
+                return res.status(400).json({ success: false, message: 'No pricing tier found for this weight' });
+              }
 
-                  // Add initial tracking update
-                  db.query(
-                    'INSERT INTO tracking_updates (transaction_id, status, description) VALUES (?, ?, ?)',
-                    [transactionResults.insertId, 'pending', 'Paket telah terdaftar dan menunggu diproses'],
-                    (err, trackingResults) => {
-                      if (err) {
-                        return db.rollback(() => {
-                          res.status(500).json({ success: false, message: 'Database error' });
-                        });
-                      }
+              const tier = tierResults[0];
+              const pricePerKg = userRole === 'mitra' ? tier.price_per_kg_mitra : tier.price_per_kg;
+              const pricePerVolume = userRole === 'mitra' ? tier.price_per_volume_mitra : tier.price_per_volume;
+              
+              const weightPrice = weight * pricePerKg;
+              const volumePrice = volume * pricePerVolume;
+              const totalPrice = Math.max(weightPrice, volumePrice);
 
-                      db.commit((err) => {
+              callback({ pricePerKg, pricePerVolume, totalPrice });
+            }
+          );
+        } else {
+          // Use flat pricing
+          const pricePerKg = userRole === 'mitra' ? price.price_per_kg_mitra : price.price_per_kg;
+          const pricePerVolume = userRole === 'mitra' ? price.price_per_volume_mitra : price.price_per_volume;
+          
+          const weightPrice = weight * pricePerKg;
+          const volumePrice = volume * pricePerVolume;
+          const totalPrice = Math.max(weightPrice, volumePrice);
+
+          callback({ pricePerKg, pricePerVolume, totalPrice });
+        }
+      };
+
+      // Calculate price and continue with transaction
+      calculatePrice(({ pricePerKg, pricePerVolume, totalPrice }) => {
+
+        // Check user balance
+        db.query('SELECT balance FROM users WHERE id = ?', [req.user.id], (err, userResults) => {
+          if (err) {
+            return res.status(500).json({ success: false, message: 'Database error' });
+          }
+
+          const userBalance = userResults[0].balance;
+
+          if (userBalance < totalPrice) {
+            return res.status(400).json({ 
+              success: false, 
+              message: 'Insufficient balance. Please top up your account.' 
+            });
+          }
+
+          const resi = generateResi();
+
+          // Get uploaded files
+          const fotoAlamat = req.files?.foto_alamat ? req.files.foto_alamat[0].filename : null;
+          const tandaPengenalDepan = req.files?.tanda_pengenal_depan ? req.files.tanda_pengenal_depan[0].filename : null;
+          const tandaPengenalBelakang = req.files?.tanda_pengenal_belakang ? req.files.tanda_pengenal_belakang[0].filename : null;
+
+          // Start transaction
+          db.beginTransaction((err) => {
+            if (err) {
+              return res.status(500).json({ success: false, message: 'Transaction error' });
+            }
+
+            // Create transaction record
+            db.query(
+              `INSERT INTO transactions 
+               (user_id, resi, destination, receiver_name, receiver_phone, receiver_address, item_category,
+                weight, length, width, height, volume, 
+                price_per_kg, price_per_volume, total_price,
+                foto_alamat, kode_pos_penerima, tanda_pengenal_depan, tanda_pengenal_belakang,
+                nomor_identitas_penerima, email_penerima) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                req.user.id, resi, destination, receiver_name, receiver_phone, receiver_address, item_category,
+                weight, length, width, height, volume, 
+                pricePerKg, pricePerVolume, totalPrice,
+                fotoAlamat, kode_pos_penerima || null, tandaPengenalDepan, tandaPengenalBelakang,
+                nomor_identitas_penerima || null, email_penerima || null
+              ],
+              (err, transactionResults) => {
+                if (err) {
+                  console.error('Transaction insert error:', err);
+                  return db.rollback(() => {
+                    res.status(500).json({ success: false, message: 'Database error' });
+                  });
+                }
+
+                // Deduct user balance
+                db.query(
+                  'UPDATE users SET balance = balance - ? WHERE id = ?',
+                  [totalPrice, req.user.id],
+                  (err, updateResults) => {
+                    if (err) {
+                      return db.rollback(() => {
+                        res.status(500).json({ success: false, message: 'Database error' });
+                      });
+                    }
+
+                    // Add initial tracking update
+                    db.query(
+                      'INSERT INTO tracking_updates (transaction_id, status, description) VALUES (?, ?, ?)',
+                      [transactionResults.insertId, 'pending', 'Paket telah terdaftar dan menunggu diproses'],
+                      (err, trackingResults) => {
                         if (err) {
                           return db.rollback(() => {
-                            res.status(500).json({ success: false, message: 'Commit error' });
+                            res.status(500).json({ success: false, message: 'Database error' });
                           });
                         }
 
-                        res.status(201).json({
-                          success: true,
-                          message: 'Transaction created successfully',
-                          data: { 
-                            id: transactionResults.insertId, 
-                            resi: resi,
-                            total_price: totalPrice 
+                        db.commit((err) => {
+                          if (err) {
+                            return db.rollback(() => {
+                              res.status(500).json({ success: false, message: 'Commit error' });
+                            });
                           }
+
+                          res.status(201).json({
+                            success: true,
+                            message: 'Transaction created successfully',
+                            data: { 
+                              id: transactionResults.insertId, 
+                              resi: resi,
+                              total_price: totalPrice 
+                            }
+                          });
                         });
-                      });
-                    }
-                  );
-                }
-              );
-            }
-          );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
         });
       });
     });
