@@ -71,10 +71,28 @@ const Transactions = () => {
     const width = Number(form.width || 0);
     const height = Number(form.height || 0);
     const volume = (length * width * height) / 1000000; // m3
-    const weightPrice = weight * selectedPrice.price_per_kg;
-    const volumePrice = volume * selectedPrice.price_per_volume;
+    
+    let pricePerKg = selectedPrice.price_per_kg;
+    let pricePerVolume = selectedPrice.price_per_volume;
+    
+    // If using tiered pricing, find the appropriate tier based on weight
+    if (selectedPrice.use_tiered_pricing && selectedPrice.tiers && selectedPrice.tiers.length > 0) {
+      const applicableTier = selectedPrice.tiers.find(tier => {
+        const minWeight = Number(tier.min_weight || 0);
+        const maxWeight = tier.max_weight ? Number(tier.max_weight) : Infinity;
+        return weight >= minWeight && weight <= maxWeight;
+      });
+      
+      if (applicableTier) {
+        pricePerKg = Number(applicableTier.price_per_kg);
+        pricePerVolume = Number(applicableTier.price_per_volume);
+      }
+    }
+    
+    const weightPrice = weight * pricePerKg;
+    const volumePrice = volume * pricePerVolume;
     const total = Math.max(weightPrice, volumePrice);
-    return { volume, total };
+    return { volume, total, pricePerKg, pricePerVolume };
   }, [form, selectedPrice]);
 
   const handleChange = (e) => {
@@ -191,7 +209,7 @@ const Transactions = () => {
             <option value="">Pilih tujuan</option>
             {prices.map((p) => (
               <option key={p.id} value={p.country} disabled={p.category === 'SENSITIF' || p.category === 'BATERAI'}>
-                {p.country} (Rp{Number(p.price_per_kg).toLocaleString('id-ID')}/kg, Rp{Number(p.price_per_volume).toLocaleString('id-ID')}/m³)
+                {p.country} {p.use_tiered_pricing ? '(Harga Bertingkat ⚡)' : `(Rp${Number(p.price_per_kg).toLocaleString('id-ID')}/kg, Rp${Number(p.price_per_volume).toLocaleString('id-ID')}/m³)`}
               </option>
             ))}
           </select>
@@ -373,9 +391,24 @@ const Transactions = () => {
         )}
 
         {estimate && (
-          <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm">
-            Perkiraan total biaya: <span className="font-semibold">Rp{Number(estimate.total).toLocaleString('id-ID')}</span>
-            <span className="ml-2 text-gray-600">(menggunakan berat vs volume yang lebih besar)</span>
+          <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm space-y-1">
+            <div>
+              Perkiraan total biaya: <span className="font-semibold text-lg">Rp{Number(estimate.total).toLocaleString('id-ID')}</span>
+            </div>
+            <div className="text-xs text-gray-600">
+              {selectedPrice?.use_tiered_pricing && (
+                <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded mr-2">
+                  ⚡ Harga Bertingkat - Rp{Number(estimate.pricePerKg).toLocaleString('id-ID')}/kg
+                </span>
+              )}
+              <span>Berat: {form.weight} kg × Rp{Number(estimate.pricePerKg).toLocaleString('id-ID')} = Rp{(Number(form.weight) * estimate.pricePerKg).toLocaleString('id-ID')}</span>
+            </div>
+            <div className="text-xs text-gray-600">
+              <span>Volume: {estimate.volume.toFixed(4)} m³ × Rp{Number(estimate.pricePerVolume).toLocaleString('id-ID')} = Rp{(estimate.volume * estimate.pricePerVolume).toLocaleString('id-ID')}</span>
+            </div>
+            <div className="text-xs text-gray-500 italic">
+              * Sistem menggunakan yang lebih besar antara perhitungan berat dan volume
+            </div>
           </div>
         )}
 
