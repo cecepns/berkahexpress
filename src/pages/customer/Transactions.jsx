@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { priceAPI, transactionAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import { useReactToPrint } from 'react-to-print';
+import { PrinterIcon } from '@heroicons/react/24/outline';
+import ResiPrint from '../../components/ResiPrint';
 
 const Transactions = () => {
   const { refreshProfile } = useAuth();
@@ -9,6 +12,7 @@ const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [form, setForm] = useState({
     destination: '',
     receiver_name: '',
@@ -28,6 +32,14 @@ const Transactions = () => {
     foto_alamat: null,
     tanda_pengenal_depan: null,
     tanda_pengenal_belakang: null,
+  });
+
+  const printRef = useRef();
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Resi-${selectedTransaction?.resi || 'BerkahExpress'}`,
+    onAfterPrint: () => toast.success('Resi berhasil dicetak!'),
   });
 
   useEffect(() => {
@@ -385,6 +397,7 @@ const Transactions = () => {
               <th className="text-left p-2">Volume (m³)</th>
               <th className="text-left p-2">Total (Rp)</th>
               <th className="text-left p-2">Status</th>
+              <th className="text-left p-2">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -401,15 +414,32 @@ const Transactions = () => {
                 <td className="p-2">{Number(t.volume).toFixed(3)}</td>
                 <td className="p-2">{Number(t.total_price).toLocaleString('id-ID')}</td>
                 <td className="p-2 capitalize">{t.status}</td>
+                <td className="p-2">
+                  <button
+                    onClick={() => {
+                      setSelectedTransaction(t);
+                      setTimeout(() => handlePrint(), 100);
+                    }}
+                    className="text-green-600 hover:text-green-900 p-1"
+                    title="Cetak Resi"
+                  >
+                    <PrinterIcon className="h-4 w-4" />
+                  </button>
+                </td>
               </tr>
             ))}
             {transactions.length === 0 && !loading && (
               <tr>
-                <td className="p-3 text-center text-gray-500" colSpan="8">Belum ada data</td>
+                <td className="p-3 text-center text-gray-500" colSpan="9">Belum ada data</td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Hidden Print Component */}
+      <div style={{ display: 'none' }}>
+        <ResiPrint ref={printRef} transaction={selectedTransaction} />
       </div>
     </div>
   );

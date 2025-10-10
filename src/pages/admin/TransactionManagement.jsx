@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { transactionAPI, expeditionAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
+import { useReactToPrint } from 'react-to-print';
 import { 
   EyeIcon,
   MagnifyingGlassIcon,
-  TruckIcon
+  TruckIcon,
+  PrinterIcon
 } from '@heroicons/react/24/outline';
+import ResiPrint from '../../components/ResiPrint';
 
 const TransactionManagement = () => {
   const [transactions, setTransactions] = useState([]);
@@ -18,6 +21,14 @@ const TransactionManagement = () => {
   const [expeditionForm, setExpeditionForm] = useState({
     expedition_id: '',
     expedition_resi: ''
+  });
+
+  const printRef = useRef();
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Resi-${selectedTransaction?.resi || 'BerkahExpress'}`,
+    onAfterPrint: () => toast.success('Resi berhasil dicetak!'),
   });
 
   useEffect(() => {
@@ -75,6 +86,15 @@ const TransactionManagement = () => {
 
   const openModal = (transaction) => {
     setSelectedTransaction(transaction);
+    // Pre-populate form if expedition info exists
+    if (transaction.expedition_id && transaction.expedition_resi) {
+      setExpeditionForm({
+        expedition_id: transaction.expedition_id.toString(),
+        expedition_resi: transaction.expedition_resi
+      });
+    } else {
+      setExpeditionForm({ expedition_id: '', expedition_resi: '' });
+    }
     setShowModal(true);
   };
 
@@ -226,6 +246,16 @@ const TransactionManagement = () => {
                     >
                       <EyeIcon className="h-4 w-4" />
                     </button>
+                    <button
+                      onClick={() => {
+                        setSelectedTransaction(transaction);
+                        setTimeout(() => handlePrint(), 100);
+                      }}
+                      className="text-green-600 hover:text-green-900 p-1"
+                      title="Cetak Resi"
+                    >
+                      <PrinterIcon className="h-4 w-4" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -329,58 +359,59 @@ const TransactionManagement = () => {
 
               {/* Right Column */}
               <div className="space-y-4">
-                {/* Expedition Form - Only show for pending status */}
-                {selectedTransaction.status === 'pending' && (
-                  <div className="border-l pl-6">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Input Ekspedisi</h4>
-                    <form onSubmit={handleExpeditionUpdate} className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Pilih Ekspedisi</label>
-                        <select
-                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                          value={expeditionForm.expedition_id}
-                          onChange={(e) => setExpeditionForm({...expeditionForm, expedition_id: e.target.value})}
-                          required
-                        >
-                          <option value="">Pilih Ekspedisi</option>
-                          {expeditions.map(exp => (
-                            <option key={exp.id} value={exp.id}>{exp.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">No. Resi Ekspedisi</label>
-                        <input
-                          type="text"
-                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                          value={expeditionForm.expedition_resi}
-                          onChange={(e) => setExpeditionForm({...expeditionForm, expedition_resi: e.target.value})}
-                          placeholder="Masukkan no resi ekspedisi"
-                          required
-                        />
-                      </div>
+                {/* Expedition Form - Always allow editing */}
+                <div className="border-l pl-6">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    {selectedTransaction.expedition_resi ? 'Edit Ekspedisi' : 'Input Ekspedisi'}
+                  </h4>
+                  <form onSubmit={handleExpeditionUpdate} className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Pilih Ekspedisi</label>
+                      <select
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                        value={expeditionForm.expedition_id}
+                        onChange={(e) => setExpeditionForm({...expeditionForm, expedition_id: e.target.value})}
+                        required
+                      >
+                        <option value="">Pilih Ekspedisi</option>
+                        {expeditions.map(exp => (
+                          <option key={exp.id} value={exp.id}>{exp.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">No. Resi Ekspedisi</label>
+                      <input
+                        type="text"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                        value={expeditionForm.expedition_resi}
+                        onChange={(e) => setExpeditionForm({...expeditionForm, expedition_resi: e.target.value})}
+                        placeholder="Masukkan no resi ekspedisi"
+                        required
+                      />
+                    </div>
+                    {selectedTransaction.status === 'pending' && (
                       <div className="bg-blue-50 p-3 rounded-md">
                         <p className="text-xs text-blue-600">
                           <strong>Info:</strong> Setelah input resi ekspedisi, status otomatis akan berubah menjadi &ldquo;Dikirim&rdquo;
                         </p>
                       </div>
-                      <button
-                        type="submit"
-                        className="w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md"
-                      >
-                        Simpan Ekspedisi
-                      </button>
-                    </form>
-                  </div>
-                )}
-
-                {/* Show expedition info for non-pending status */}
-                {selectedTransaction.status !== 'pending' && selectedTransaction.expedition_resi && (
-                  <div className="border-l pl-6">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Informasi Ekspedisi</h4>
-                    <p className="text-sm text-gray-900">No. Resi Ekspedisi: <span className="font-mono">{selectedTransaction.expedition_resi}</span></p>
-                  </div>
-                )}
+                    )}
+                    {selectedTransaction.expedition_resi && (
+                      <div className="bg-yellow-50 p-3 rounded-md">
+                        <p className="text-xs text-yellow-700">
+                          <strong>Resi Saat Ini:</strong> <span className="font-mono">{selectedTransaction.expedition_resi}</span>
+                        </p>
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      className="w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md"
+                    >
+                      {selectedTransaction.expedition_resi ? 'Update Ekspedisi' : 'Simpan Ekspedisi'}
+                    </button>
+                  </form>
+                </div>
 
                 {/* Identity Documents */}
                 {(selectedTransaction.foto_alamat || selectedTransaction.tanda_pengenal_depan || selectedTransaction.tanda_pengenal_belakang) && (
@@ -448,7 +479,14 @@ const TransactionManagement = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
+            <div className="flex justify-between items-center pt-6 border-t mt-6">
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md flex items-center gap-2"
+              >
+                <PrinterIcon className="h-5 w-5" />
+                Cetak Resi
+              </button>
               <button
                 onClick={() => {
                   setShowModal(false);
@@ -463,6 +501,11 @@ const TransactionManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Hidden Print Component */}
+      <div style={{ display: 'none' }}>
+        <ResiPrint ref={printRef} transaction={selectedTransaction} />
+      </div>
     </div>
   );
 };
