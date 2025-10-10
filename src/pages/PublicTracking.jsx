@@ -3,6 +3,7 @@ import { trackingAPI } from '../utils/api';
 import { toast } from 'react-toastify';
 import { TruckIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import logo from '../assets/logo.png';
 
 const PublicTracking = () => {
   const [resi, setResi] = useState('');
@@ -39,7 +40,7 @@ const PublicTracking = () => {
           // Don't show error to user, just don't display external tracking
         }
       }
-    } catch (error) {
+    } catch {
       setTracking(null);
       setExternalTracking(null);
       toast.error('Resi tidak ditemukan');
@@ -79,9 +80,9 @@ const PublicTracking = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-primary-600 mb-4">
-            BerkahExpress
-          </h1>
+          <div className="flex justify-center mb-6">
+            <img src={logo} alt="BerkahExpress Logo" className="h-24 w-auto" />
+          </div>
           <p className="text-xl text-gray-600 mb-8">
             Lacak Paket Anda
           </p>
