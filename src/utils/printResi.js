@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import logo from '../assets/logo.png';
 import { pdf } from '@react-pdf/renderer';
 import ResiPDFDocument from '../components/ResiPDFDocument';
+import JsBarcode from 'jsbarcode';
 
 /**
  * Generate HTML content for resi print
@@ -276,20 +277,31 @@ export const printResiInNewWindow = (transaction, isCustomer = false) => {
 };
 
 /**
- * Fetch image and convert to base64
+ * Generate barcode as base64 using jsbarcode
  */
-const fetchImageAsBase64 = async (url) => {
+const generateBarcodeBase64 = (text) => {
   try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    
+    // Generate barcode on canvas
+    JsBarcode(canvas, text, {
+      format: 'CODE128',
+      width: 2,
+      height: 60,
+      displayValue: true,
+      fontSize: 14,
+      margin: 10,
+      background: '#ffffff',
+      lineColor: '#000000'
     });
+    
+    // Convert canvas to base64
+    const base64 = canvas.toDataURL('image/png');
+    console.log('Barcode generated successfully, length:', base64.length);
+    return base64;
   } catch (error) {
-    console.error('Error fetching image:', error);
+    console.error('Error generating barcode:', error);
     return null;
   }
 };
@@ -306,13 +318,12 @@ export const downloadResiAsPDF = async (transaction, isCustomer = false) => {
   try {
     console.log('Starting PDF generation for transaction:', transaction.resi);
 
-    // Fetch barcode as base64 if needed
+    // Generate barcode as base64 if needed
     let barcodeBase64 = null;
     if (!isCustomer && transaction.expedition_resi) {
-      console.log('Fetching barcode for expedition_resi:', transaction.expedition_resi);
-      const barcodeURL = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(transaction.expedition_resi)}&code=Code128&multiplebarcodes=false&translate-esc=false&unit=Fit&dpi=96&imagetype=Gif&rotation=0&color=%23000000&bgcolor=%23ffffff&qunit=Mm&quiet=0`;
-      barcodeBase64 = await fetchImageAsBase64(barcodeURL);
-      console.log('Barcode fetched:', barcodeBase64 ? 'success' : 'failed');
+      console.log('Generating barcode for expedition_resi:', transaction.expedition_resi);
+      barcodeBase64 = generateBarcodeBase64(transaction.expedition_resi);
+      console.log('Barcode generated:', barcodeBase64 ? 'success' : 'failed');
     }
 
     // Generate PDF blob using @react-pdf/renderer
