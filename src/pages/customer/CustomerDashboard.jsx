@@ -202,8 +202,17 @@ const CustomerDashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {transaction.weight} kg
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      Rp{Number(transaction.total_price || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {transaction.status?.toLowerCase() === 'canceled' ? (
+                        <span className="text-green-600 font-semibold">
+                          +Rp{Number(transaction.total_price || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          <span className="block text-xs">saldo dikembalikan</span>
+                        </span>
+                      ) : (
+                        <span className="text-red-600 font-semibold">
+                          Rp{Number(transaction.total_price || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(transaction.status)}`}>

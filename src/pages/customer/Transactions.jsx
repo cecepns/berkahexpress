@@ -520,7 +520,18 @@ const Transactions = () => {
                 </td>
                 <td className="p-2">{Number(t.weight)}</td>
                 <td className="p-2">{Number(t.volume).toFixed(2)}</td>
-                <td className="p-2">Rp{Number(t.total_price).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                <td className="p-2">
+                  {t.status?.toLowerCase() === 'canceled' ? (
+                    <span className="text-green-600 font-semibold">
+                      +Rp{Number(t.total_price).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      <span className="block text-xs">saldo dikembalikan</span>
+                    </span>
+                  ) : (
+                    <span className="text-red-600 font-semibold">
+                      Rp{Number(t.total_price).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </span>
+                  )}
+                </td>
                 <td className="p-2">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(t.status)}`}>
                     {t.status}
