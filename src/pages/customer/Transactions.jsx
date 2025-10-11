@@ -135,15 +135,18 @@ const Transactions = () => {
     const height = Number(form.height || 0);
     const volume = (length * width * height) / 5000; // volume weight in kg
     
+    // Use the larger value between actual weight and volume weight for tier selection
+    const effectiveWeight = Math.max(weight, volume);
+    
     let pricePerKg = selectedPrice.price_per_kg;
     let pricePerVolume = selectedPrice.price_per_volume;
     
-    // If using tiered pricing, find the appropriate tier based on weight
+    // If using tiered pricing, find the appropriate tier based on effective weight
     if (selectedPrice.use_tiered_pricing && selectedPrice.tiers && selectedPrice.tiers.length > 0) {
       const applicableTier = selectedPrice.tiers.find(tier => {
         const minWeight = Number(tier.min_weight || 0);
         const maxWeight = tier.max_weight ? Number(tier.max_weight) : Infinity;
-        return weight >= minWeight && weight <= maxWeight;
+        return effectiveWeight >= minWeight && effectiveWeight <= maxWeight;
       });
       
       if (applicableTier) {

@@ -997,12 +997,21 @@ app.post('/api/transactions', authenticateToken, upload.fields([
       }
 
       const price = priceResults[0];
-      const volume = (length * width * height) / 5000; // Volume weight in kg
+      
+      // Explicitly convert dimensions to numbers to avoid string concatenation issues
+      const weightNum = Number(weight);
+      const lengthNum = Number(length);
+      const widthNum = Number(width);
+      const heightNum = Number(height);
+      const volume = (lengthNum * widthNum * heightNum) / 5000; // Volume weight in kg
+      
+      // Use the larger value between actual weight and volume weight for tier selection
+      const effectiveWeight = Math.max(weightNum, volume);
       
       // Function to calculate price based on tiered or flat pricing
       const calculatePrice = (callback) => {
         if (price.use_tiered_pricing) {
-          // Get applicable tier based on weight
+          // Get applicable tier based on effective weight (max of weight and volume)
           db.query(
             `SELECT * FROM price_tiers 
              WHERE price_id = ? 
@@ -1010,7 +1019,7 @@ app.post('/api/transactions', authenticateToken, upload.fields([
              AND (max_weight >= ? OR max_weight IS NULL)
              ORDER BY min_weight DESC
              LIMIT 1`,
-            [price.id, weight, weight],
+            [price.id, effectiveWeight, effectiveWeight],
             (err, tierResults) => {
               if (err) {
                 return res.status(500).json({ success: false, message: 'Database error fetching tiers' });
@@ -1024,7 +1033,7 @@ app.post('/api/transactions', authenticateToken, upload.fields([
               const pricePerKg = userRole === 'mitra' ? tier.price_per_kg_mitra : tier.price_per_kg;
               const pricePerVolume = userRole === 'mitra' ? tier.price_per_volume_mitra : tier.price_per_volume;
               
-              const weightPrice = weight * pricePerKg;
+              const weightPrice = weightNum * pricePerKg;
               const volumePrice = volume * pricePerVolume;
               const totalPrice = Math.max(weightPrice, volumePrice);
 
@@ -1036,7 +1045,7 @@ app.post('/api/transactions', authenticateToken, upload.fields([
           const pricePerKg = userRole === 'mitra' ? price.price_per_kg_mitra : price.price_per_kg;
           const pricePerVolume = userRole === 'mitra' ? price.price_per_volume_mitra : price.price_per_volume;
           
-          const weightPrice = weight * pricePerKg;
+          const weightPrice = weightNum * pricePerKg;
           const volumePrice = volume * pricePerVolume;
           const totalPrice = Math.max(weightPrice, volumePrice);
 
@@ -1086,7 +1095,7 @@ app.post('/api/transactions', authenticateToken, upload.fields([
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 req.user.id, resi, destination, receiver_name, receiver_phone, receiver_address, item_category,
-                weight, length, width, height, volume, 
+                weightNum, lengthNum, widthNum, heightNum, volume, 
                 pricePerKg, pricePerVolume, totalPrice,
                 fotoAlamat, kode_pos_penerima || null, tandaPengenalDepan, tandaPengenalBelakang,
                 nomor_identitas_penerima || null, email_penerima || null
