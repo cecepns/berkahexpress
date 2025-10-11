@@ -542,7 +542,7 @@ const Transactions = () => {
                     <button
                       onClick={() => {
                         setSelectedTransaction(t);
-                        setTimeout(() => handlePrint(), 100);
+                        setTimeout(() => handlePrint(), 300);
                       }}
                       className="text-green-600 hover:text-green-900 p-1"
                       title="Cetak Resi"
@@ -660,7 +660,7 @@ const Transactions = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={() => {
-                    setTimeout(() => handlePrint(), 100);
+                    setTimeout(() => handlePrint(), 300);
                   }}
                   className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md flex items-center gap-2"
                 >
@@ -681,8 +681,8 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Hidden Print Component */}
-      <div style={{ display: 'none' }}>
+      {/* Hidden Print Component - positioned offscreen for reliable printing on mobile */}
+      <div>
         <ResiPrint ref={printRef} transaction={selectedTransaction} isCustomer={true} />
       </div>
     </div>

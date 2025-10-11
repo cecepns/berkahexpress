@@ -23,11 +23,21 @@ const ResiPrint = forwardRef(({ transaction, isCustomer = false }, ref) => {
               width: 100%;
               padding: 12px;
               font-family: Arial, sans-serif;
+              position: static !important;
+              visibility: visible !important;
+              height: auto !important;
+              overflow: visible !important;
             }
           }
           @media screen {
             .print-container {
-              display: none;
+              position: absolute;
+              left: -9999px;
+              top: -9999px;
+              width: 210mm;
+              height: auto;
+              visibility: hidden;
+              overflow: hidden;
             }
           }
         `}
