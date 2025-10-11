@@ -664,7 +664,7 @@ const Transactions = () => {
 
       {/* Hidden Print Component */}
       <div style={{ display: 'none' }}>
-        <ResiPrint ref={printRef} transaction={selectedTransaction} />
+        <ResiPrint ref={printRef} transaction={selectedTransaction} isCustomer={true} />
       </div>
     </div>
   );
