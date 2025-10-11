@@ -254,7 +254,7 @@ const UserManagement = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    Rp {user.balance?.toLocaleString('id-ID') || '0'}
+                    Rp{Number(user.balance || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(user.created_at).toLocaleDateString('id-ID')}
@@ -411,7 +411,7 @@ const UserManagement = () => {
             <div className="mb-4 p-3 bg-gray-50 rounded-md">
               <p className="text-sm text-gray-600">Saldo saat ini:</p>
               <p className="text-lg font-semibold text-primary-600">
-                Rp {balanceUser.balance?.toLocaleString('id-ID') || '0'}
+                Rp{Number(balanceUser.balance || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </p>
             </div>
             <form onSubmit={handleBalanceUpdate} className="space-y-4">

@@ -150,7 +150,7 @@ const CustomerLayout = ({ children }) => {
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600">Saldo:</span>
                   <span className="text-sm font-semibold text-primary-600">
-                    Rp {user?.balance?.toLocaleString('id-ID') || '0'}
+                    Rp{Number(user?.balance || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </span>
                 </div>
                 <div className="hidden sm:flex items-center space-x-2">

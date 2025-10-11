@@ -256,7 +256,7 @@ const PriceManagement = () => {
                               <span className="font-medium">
                                 {tier.min_weight} - {tier.max_weight ? tier.max_weight : '∞'} Kg:
                               </span>
-                              {' '}Rp {Number(tier.price_per_kg).toLocaleString('id-ID')}/Kg
+                              {' '}Rp{Number(tier.price_per_kg).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/Kg
                             </div>
                           ))
                         ) : (
@@ -266,10 +266,10 @@ const PriceManagement = () => {
                     ) : (
                       <div className="text-xs space-y-1">
                         <div className="text-gray-700">
-                          <span className="font-medium">Customer:</span> Rp {Number(price.price_per_kg).toLocaleString('id-ID')}/Kg
+                          <span className="font-medium">Customer:</span> Rp{Number(price.price_per_kg).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/Kg
                         </div>
                         <div className="text-gray-700">
-                          <span className="font-medium">Mitra:</span> Rp {Number(price.price_per_kg_mitra).toLocaleString('id-ID')}/Kg
+                          <span className="font-medium">Mitra:</span> Rp{Number(price.price_per_kg_mitra).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/Kg
                         </div>
                       </div>
                     )}

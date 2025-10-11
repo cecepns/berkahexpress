@@ -76,7 +76,7 @@ const CustomerDashboard = () => {
             <BanknotesIcon className="h-5 w-5 text-primary-600 mr-2" />
             <span className="text-sm text-gray-600">Saldo Anda:</span>
             <span className="ml-2 text-lg font-semibold text-primary-600">
-              Rp {user?.balance?.toLocaleString('id-ID') || '0'}
+              Rp{Number(user?.balance || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>
           </div>
         </div>
@@ -201,7 +201,7 @@ const CustomerDashboard = () => {
                       {transaction.weight} kg
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      Rp {transaction.total_price?.toLocaleString('id-ID')}
+                      Rp{Number(transaction.total_price || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(transaction.status)}`}>

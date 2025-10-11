@@ -117,7 +117,7 @@ const Transactions = () => {
   const destinationOptions = useMemo(() => {
     return prices.map((p) => ({
       value: p.country,
-      label: `${p.country} ${p.use_tiered_pricing ? '(Harga Bertingkat ⚡)' : `(Rp${Number(p.price_per_kg).toLocaleString('id-ID')}/kg, Rp${Number(p.price_per_volume).toLocaleString('id-ID')}/kg vol)`}`,
+      label: `${p.country} ${p.use_tiered_pricing ? '(Harga Bertingkat ⚡)' : `(Rp${Number(p.price_per_kg).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/kg, Rp${Number(p.price_per_volume).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/kg vol)`}`,
       isDisabled: p.category === 'SENSITIF' || p.category === 'BATERAI',
       priceData: p
     }));
@@ -468,18 +468,18 @@ const Transactions = () => {
         {estimate && (
           <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm space-y-1">
             <div>
-              Perkiraan total biaya: <span className="font-semibold text-lg">Rp{Number(estimate.total).toLocaleString('id-ID')}</span>
+              Perkiraan total biaya: <span className="font-semibold text-lg">Rp{Number(estimate.total).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
             </div>
             <div className="text-xs text-gray-600">
               {selectedPrice?.use_tiered_pricing && (
                 <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded mr-2">
-                  ⚡ Harga Bertingkat - Rp{Number(estimate.pricePerKg).toLocaleString('id-ID')}/kg
+                  ⚡ Harga Bertingkat - Rp{Number(estimate.pricePerKg).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/kg
                 </span>
               )}
-              <span>Berat: {form.weight} kg × Rp{Number(estimate.pricePerKg).toLocaleString('id-ID')} = Rp{(Number(form.weight) * estimate.pricePerKg).toLocaleString('id-ID')}</span>
+              <span>Berat: {form.weight} kg × Rp{Number(estimate.pricePerKg).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} = Rp{(Number(form.weight) * estimate.pricePerKg).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
             </div>
             <div className="text-xs text-gray-600">
-              <span>Volume Weight: {estimate.volume.toFixed(2)} kg × Rp{Number(estimate.pricePerVolume).toLocaleString('id-ID')} = Rp{(estimate.volume * estimate.pricePerVolume).toLocaleString('id-ID')}</span>
+              <span>Volume Weight: {estimate.volume.toFixed(2)} kg × Rp{Number(estimate.pricePerVolume).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} = Rp{(estimate.volume * estimate.pricePerVolume).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
             </div>
             <div className="text-xs text-gray-500 italic">
               * Sistem menggunakan yang lebih besar antara perhitungan berat dan volume
@@ -520,7 +520,7 @@ const Transactions = () => {
                 </td>
                 <td className="p-2">{Number(t.weight)}</td>
                 <td className="p-2">{Number(t.volume).toFixed(2)}</td>
-                <td className="p-2">{Number(t.total_price).toLocaleString('id-ID')}</td>
+                <td className="p-2">Rp{Number(t.total_price).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                 <td className="p-2">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(t.status)}`}>
                     {t.status}
@@ -625,10 +625,10 @@ const Transactions = () => {
 
               <div className="border-t pt-4">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Biaya</h4>
-                <p className="text-sm text-gray-500">Harga per KG: Rp {selectedTransaction.price_per_kg ? Number(selectedTransaction.price_per_kg).toLocaleString('id-ID') : '0'}</p>
-                <p className="text-sm text-gray-500">Harga per Vol: Rp {selectedTransaction.price_per_volume ? Number(selectedTransaction.price_per_volume).toLocaleString('id-ID') : '0'}</p>
+                <p className="text-sm text-gray-500">Harga per KG: Rp{selectedTransaction.price_per_kg ? Number(selectedTransaction.price_per_kg).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}</p>
+                <p className="text-sm text-gray-500">Harga per Vol: Rp{selectedTransaction.price_per_volume ? Number(selectedTransaction.price_per_volume).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}</p>
                 <p className="mt-2 text-lg font-semibold text-primary-600">
-                  Total: Rp {selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID') : '0'}
+                  Total: Rp{selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
                 </p>
               </div>
 

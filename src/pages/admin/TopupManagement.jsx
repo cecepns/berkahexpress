@@ -156,7 +156,7 @@ const TopupManagement = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      Rp {topup.amount?.toLocaleString('id-ID')}
+                      Rp{Number(topup.amount || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -233,7 +233,7 @@ const TopupManagement = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Jumlah</label>
                 <p className="mt-1 text-sm font-medium text-gray-900">
-                  Rp {selectedTopup.amount?.toLocaleString('id-ID')}
+                  Rp{Number(selectedTopup.amount || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </p>
               </div>
               

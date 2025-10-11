@@ -74,7 +74,7 @@ const TransactionManagement = () => {
 
     try {
       await transactionAPI.cancelTransaction(transaction.id);
-      toast.success(`Pesanan berhasil dibatalkan. Saldo Rp ${Number(transaction.total_price).toLocaleString('id-ID')} telah dikembalikan.`);
+      toast.success(`Pesanan berhasil dibatalkan. Saldo Rp${Number(transaction.total_price).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} telah dikembalikan.`);
       fetchTransactions();
     } catch (error) {
       console.error('Error canceling transaction:', error);
@@ -245,7 +245,7 @@ const TransactionManagement = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      Rp {transaction.total_price ? Number(transaction.total_price).toLocaleString('id-ID') : '0'}
+                      Rp{transaction.total_price ? Number(transaction.total_price).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -369,10 +369,10 @@ const TransactionManagement = () => {
 
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">Biaya</h4>
-                  <p className="text-sm text-gray-500">Harga per KG: Rp {selectedTransaction.price_per_kg ? Number(selectedTransaction.price_per_kg).toLocaleString('id-ID') : '0'}</p>
-                  <p className="text-sm text-gray-500">Harga per Vol: Rp {selectedTransaction.price_per_volume ? Number(selectedTransaction.price_per_volume).toLocaleString('id-ID') : '0'}</p>
+                  <p className="text-sm text-gray-500">Harga per KG: Rp{selectedTransaction.price_per_kg ? Number(selectedTransaction.price_per_kg).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}</p>
+                  <p className="text-sm text-gray-500">Harga per Vol: Rp{selectedTransaction.price_per_volume ? Number(selectedTransaction.price_per_volume).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}</p>
                   <p className="mt-2 text-lg font-semibold text-primary-600">
-                    Total: Rp {selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID') : '0'}
+                    Total: Rp{selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
                   </p>
                 </div>
 
@@ -519,7 +519,7 @@ const TransactionManagement = () => {
                       Batalkan Pesanan
                     </button>
                     <p className="mt-2 text-xs text-gray-500">
-                      Saldo customer sebesar Rp {selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID') : '0'} akan dikembalikan
+                      Saldo customer sebesar Rp{selectedTransaction.total_price ? Number(selectedTransaction.total_price).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'} akan dikembalikan
                     </p>
                   </div>
                 )}

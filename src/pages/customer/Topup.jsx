@@ -137,7 +137,7 @@ const Topup = () => {
               <tr key={t.id} className="border-t">
                 <td className="p-2">{new Date(t.created_at).toLocaleString()}</td>
                 <td className="p-2">{t.bank_name} - {t.account_number}</td>
-                <td className="p-2">{Number(t.amount).toLocaleString('id-ID')}</td>
+                <td className="p-2">Rp{Number(t.amount).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                 <td className="p-2 capitalize">{t.status}</td>
                 <td className="p-2">
                   {t.proof_image && (
