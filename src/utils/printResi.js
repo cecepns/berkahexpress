@@ -1,4 +1,7 @@
+import { createElement } from 'react';
 import logo from '../assets/logo.png';
+import { pdf } from '@react-pdf/renderer';
+import ResiPDFDocument from '../components/ResiPDFDocument';
 
 /**
  * Generate HTML content for resi print
@@ -270,5 +273,75 @@ export const printResiInNewWindow = (transaction, isCustomer = false) => {
       printWindow.print();
     }
   }, 500);
+};
+
+/**
+ * Fetch image and convert to base64
+ */
+const fetchImageAsBase64 = async (url) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error fetching image:', error);
+    return null;
+  }
+};
+
+/**
+ * Download resi as PDF using @react-pdf/renderer
+ */
+export const downloadResiAsPDF = async (transaction, isCustomer = false) => {
+  if (!transaction) {
+    console.error('No transaction data provided');
+    return;
+  }
+
+  try {
+    console.log('Starting PDF generation for transaction:', transaction.resi);
+
+    // Fetch barcode as base64 if needed
+    let barcodeBase64 = null;
+    if (!isCustomer && transaction.expedition_resi) {
+      console.log('Fetching barcode for expedition_resi:', transaction.expedition_resi);
+      const barcodeURL = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(transaction.expedition_resi)}&code=Code128&multiplebarcodes=false&translate-esc=false&unit=Fit&dpi=96&imagetype=Gif&rotation=0&color=%23000000&bgcolor=%23ffffff&qunit=Mm&quiet=0`;
+      barcodeBase64 = await fetchImageAsBase64(barcodeURL);
+      console.log('Barcode fetched:', barcodeBase64 ? 'success' : 'failed');
+    }
+
+    // Generate PDF blob using @react-pdf/renderer
+    const blob = await pdf(
+      createElement(ResiPDFDocument, { transaction, isCustomer, barcodeBase64 })
+    ).toBlob();
+
+    console.log('PDF blob created, size:', blob.size, 'bytes');
+
+    // Create a download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Resi-${transaction.resi}.pdf`;
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log('PDF downloaded successfully');
+    
+    return true;
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    throw error;
+  }
 };
 

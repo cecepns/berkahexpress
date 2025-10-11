@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { transactionAPI, expeditionAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
-import { printResiInNewWindow } from '../../utils/printResi';
+import { printResiInNewWindow, downloadResiAsPDF } from '../../utils/printResi';
 import { 
   EyeIcon,
   MagnifyingGlassIcon,
   TruckIcon,
   PrinterIcon,
-  XCircleIcon
+  XCircleIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 
 const TransactionManagement = () => {
@@ -29,6 +30,21 @@ const TransactionManagement = () => {
       return;
     }
     printResiInNewWindow(transaction, false);
+  };
+
+  const handleDownloadPDF = async (transaction) => {
+    if (!transaction) {
+      toast.error('Data transaksi tidak tersedia');
+      return;
+    }
+    try {
+      toast.info('Generating PDF...');
+      await downloadResiAsPDF(transaction, false);
+      toast.success('PDF berhasil diunduh!');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Gagal mengunduh PDF. Silakan coba lagi.');
+    }
   };
 
   useEffect(() => {
@@ -270,6 +286,13 @@ const TransactionManagement = () => {
                       title="Cetak Resi"
                     >
                       <PrinterIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDownloadPDF(transaction)}
+                      className="text-indigo-600 hover:text-indigo-900 p-1"
+                      title="Download PDF"
+                    >
+                      <ArrowDownTrayIcon className="h-4 w-4" />
                     </button>
                     {transaction.status === 'pending' && (
                       <button
@@ -524,13 +547,22 @@ const TransactionManagement = () => {
             </div>
 
             <div className="flex justify-between items-center pt-6 border-t mt-6">
-              <button
-                onClick={() => handlePrint(selectedTransaction)}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md flex items-center gap-2"
-              >
-                <PrinterIcon className="h-5 w-5" />
-                Cetak Resi
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handlePrint(selectedTransaction)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md flex items-center gap-2"
+                >
+                  <PrinterIcon className="h-5 w-5" />
+                  Cetak Resi
+                </button>
+                <button
+                  onClick={() => handleDownloadPDF(selectedTransaction)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md flex items-center gap-2"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5" />
+                  Download PDF
+                </button>
+              </div>
               <button
                 onClick={() => {
                   setShowModal(false);

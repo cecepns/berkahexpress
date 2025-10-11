@@ -3,8 +3,8 @@ import { priceAPI, transactionAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { PrinterIcon, EyeIcon, MapPinIcon } from '@heroicons/react/24/outline';
-import { printResiInNewWindow } from '../../utils/printResi';
+import { PrinterIcon, EyeIcon, MapPinIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { printResiInNewWindow, downloadResiAsPDF } from '../../utils/printResi';
 import Select from 'react-select';
 
 const Transactions = () => {
@@ -43,6 +43,21 @@ const Transactions = () => {
       return;
     }
     printResiInNewWindow(transaction, true);
+  };
+
+  const handleDownloadPDF = async (transaction) => {
+    if (!transaction) {
+      toast.error('Data transaksi tidak tersedia');
+      return;
+    }
+    try {
+      toast.info('Generating PDF...');
+      await downloadResiAsPDF(transaction, true);
+      toast.success('PDF berhasil diunduh!');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Gagal mengunduh PDF. Silakan coba lagi.');
+    }
   };
 
   const openDetailModal = (transaction) => {
@@ -560,6 +575,13 @@ const Transactions = () => {
                     >
                       <PrinterIcon className="h-4 w-4" />
                     </button>
+                    <button
+                      onClick={() => handleDownloadPDF(t)}
+                      className="text-indigo-600 hover:text-indigo-900 p-1"
+                      title="Download PDF"
+                    >
+                      <ArrowDownTrayIcon className="h-4 w-4" />
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -675,6 +697,13 @@ const Transactions = () => {
                 >
                   <PrinterIcon className="h-5 w-5" />
                   Cetak Resi
+                </button>
+                <button
+                  onClick={() => handleDownloadPDF(selectedTransaction)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md flex items-center gap-2"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5" />
+                  Download PDF
                 </button>
                 <button
                   onClick={() => {
