@@ -113,6 +113,7 @@ const ResiPDFDocument = ({ transaction, isCustomer = false, barcodeBase64 = null
           <View style={styles.cardContent}>
             <Text style={[styles.row, styles.bold]}>{transaction.user_name || '-'}</Text>
             <Text style={styles.row}>{transaction.user_phone || '-'}</Text>
+            <Text style={styles.row}>{transaction.user_address || '-'}</Text>
           </View>
         </View>
 

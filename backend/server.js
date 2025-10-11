@@ -940,7 +940,7 @@ app.get('/api/transactions', authenticateToken, (req, res) => {
 // Get user transactions
 app.get('/api/transactions/user', authenticateToken, (req, res) => {
   db.query(
-    `SELECT t.*, u.name as user_name FROM transactions t 
+    `SELECT t.*, u.name as user_name, u.phone as user_phone, u.address as user_address FROM transactions t 
      JOIN users u ON t.user_id = u.id 
      WHERE t.user_id = ? ORDER BY t.created_at DESC`,
     [req.user.id],

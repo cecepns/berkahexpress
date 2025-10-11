@@ -183,6 +183,7 @@ export const generateResiHTML = (transaction, isCustomer = false) => {
       <div class="card-content">
         <div style="font-weight: bold;">${transaction.user_name || '-'}</div>
         <div>${transaction.user_phone || '-'}</div>
+        <div>${transaction.user_address || '-'}</div>
       </div>
     </div>
 
