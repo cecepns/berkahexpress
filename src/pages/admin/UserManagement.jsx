@@ -49,8 +49,9 @@ const UserManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate password if creating new user
+    // Validate password
     if (!editingUser) {
+      // New user - password required
       if (formData.password !== formData.confirmPassword) {
         toast.error('Password dan konfirmasi password tidak sama');
         return;
@@ -59,11 +60,21 @@ const UserManagement = () => {
         toast.error('Password minimal 6 karakter');
         return;
       }
+    } else if (formData.password || formData.confirmPassword) {
+      // Editing user - password optional, but if provided must be valid
+      if (formData.password !== formData.confirmPassword) {
+        toast.error('Password dan konfirmasi password tidak sama');
+        return;
+      }
+      if (formData.password.length < 6) {
+        toast.error('Password minimal 6 karakter');
+        return;
+      }
     }
     
     try {
       if (editingUser) {
-        // Update existing user (without password)
+        // Update existing user
         const updateData = {
           name: formData.name,
           email: formData.email,
@@ -71,6 +82,12 @@ const UserManagement = () => {
           address: formData.address,
           role: formData.role
         };
+        
+        // Include password if provided
+        if (formData.password) {
+          updateData.password = formData.password;
+        }
+        
         await userAPI.updateUser(editingUser.id, updateData);
         toast.success('User berhasil diupdate');
       } else {
@@ -334,32 +351,32 @@ const UserManagement = () => {
                   <option value="admin">Admin</option>
                 </select>
               </div>
-              {!editingUser && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Password</label>
-                    <input
-                      type="password"
-                      required={!editingUser}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      placeholder="Minimal 6 karakter"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Konfirmasi Password</label>
-                    <input
-                      type="password"
-                      required={!editingUser}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                      placeholder="Konfirmasi password"
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Password {editingUser && <span className="text-gray-500 text-xs">(kosongkan jika tidak ingin mengubah)</span>}
+                </label>
+                <input
+                  type="password"
+                  required={!editingUser}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  placeholder={editingUser ? "Kosongkan jika tidak ingin mengubah" : "Minimal 6 karakter"}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Konfirmasi Password {editingUser && <span className="text-gray-500 text-xs">(kosongkan jika tidak ingin mengubah)</span>}
+                </label>
+                <input
+                  type="password"
+                  required={!editingUser}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                  placeholder={editingUser ? "Kosongkan jika tidak ingin mengubah" : "Konfirmasi password"}
+                />
+              </div>
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"

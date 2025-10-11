@@ -213,14 +213,23 @@ app.get('/api/users/:id', authenticateToken, adminOnly, (req, res) => {
 });
 
 // Update user
-app.put('/api/users/:id', authenticateToken, adminOnly, (req, res) => {
+app.put('/api/users/:id', authenticateToken, adminOnly, async (req, res) => {
   const userId = req.params.id;
-  const { name, email, phone, address, role } = req.body;
+  const { name, email, phone, address, role, password } = req.body;
 
-  db.query(
-    'UPDATE users SET name = ?, email = ?, phone = ?, address = ?, role = ? WHERE id = ?',
-    [name, email, phone, address, role, userId],
-    (err, results) => {
+  try {
+    // If password is provided, hash it
+    let query, params;
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      query = 'UPDATE users SET name = ?, email = ?, phone = ?, address = ?, role = ?, password = ? WHERE id = ?';
+      params = [name, email, phone, address, role, hashedPassword, userId];
+    } else {
+      query = 'UPDATE users SET name = ?, email = ?, phone = ?, address = ?, role = ? WHERE id = ?';
+      params = [name, email, phone, address, role, userId];
+    }
+
+    db.query(query, params, (err, results) => {
       if (err) {
         if (err.code === 'ER_DUP_ENTRY') {
           return res.status(400).json({ success: false, message: 'Email already exists' });
@@ -233,8 +242,11 @@ app.put('/api/users/:id', authenticateToken, adminOnly, (req, res) => {
       }
 
       res.json({ success: true, message: 'User updated successfully' });
-    }
-  );
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 // Update user balance
