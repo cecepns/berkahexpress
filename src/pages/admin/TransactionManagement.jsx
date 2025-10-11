@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { transactionAPI, expeditionAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
-import { useReactToPrint } from 'react-to-print';
+import { printResiInNewWindow } from '../../utils/printResi';
 import { 
   EyeIcon,
   MagnifyingGlassIcon,
@@ -9,7 +9,6 @@ import {
   PrinterIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline';
-import ResiPrint from '../../components/ResiPrint';
 
 const TransactionManagement = () => {
   const [transactions, setTransactions] = useState([]);
@@ -24,13 +23,13 @@ const TransactionManagement = () => {
     expedition_resi: ''
   });
 
-  const printRef = useRef();
-
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: `Resi-${selectedTransaction?.resi || 'BerkahExpress'}`,
-    onAfterPrint: () => toast.success('Resi berhasil dicetak!'),
-  });
+  const handlePrint = (transaction) => {
+    if (!transaction) {
+      toast.error('Data transaksi tidak tersedia');
+      return;
+    }
+    printResiInNewWindow(transaction, false);
+  };
 
   useEffect(() => {
     fetchTransactions();
@@ -146,7 +145,7 @@ const TransactionManagement = () => {
 
   return (
     <>
-      <div className="no-print">
+      <div>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Manajemen Transaksi</h1>
           <p className="mt-2 text-gray-600">Kelola semua transaksi pengiriman</p>
@@ -266,10 +265,7 @@ const TransactionManagement = () => {
                       <EyeIcon className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        setSelectedTransaction(transaction);
-                        setTimeout(() => handlePrint(), 100);
-                      }}
+                      onClick={() => handlePrint(transaction)}
                       className="text-green-600 hover:text-green-900 p-1"
                       title="Cetak Resi"
                     >
@@ -529,7 +525,7 @@ const TransactionManagement = () => {
 
             <div className="flex justify-between items-center pt-6 border-t mt-6">
               <button
-                onClick={handlePrint}
+                onClick={() => handlePrint(selectedTransaction)}
                 className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md flex items-center gap-2"
               >
                 <PrinterIcon className="h-5 w-5" />
@@ -551,9 +547,6 @@ const TransactionManagement = () => {
       )}
 
       </div>
-      
-      {/* Hidden Print Component */}
-      <ResiPrint ref={printRef} transaction={selectedTransaction} />
     </>
   );
 };
