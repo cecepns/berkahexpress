@@ -280,13 +280,13 @@ const TransactionManagement = () => {
                     >
                       <EyeIcon className="h-4 w-4" />
                     </button>
-                    <button
+                    {/* <button
                       onClick={() => handlePrint(transaction)}
                       className="text-green-600 hover:text-green-900 p-1"
                       title="Cetak Resi"
                     >
                       <PrinterIcon className="h-4 w-4" />
-                    </button>
+                    </button> */}
                     <button
                       onClick={() => handleDownloadPDF(transaction)}
                       className="text-indigo-600 hover:text-indigo-900 p-1"
