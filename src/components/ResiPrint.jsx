@@ -7,7 +7,7 @@ const ResiPrint = forwardRef(({ transaction, isCustomer = false }, ref) => {
   if (!transaction) return null;
 
   return (
-    <div ref={ref} className="print-container">
+    <div ref={ref} className="print-only">
       <style>
         {`
           @media print {
@@ -19,18 +19,9 @@ const ResiPrint = forwardRef(({ transaction, isCustomer = false }, ref) => {
               margin: 0;
               padding: 0;
             }
-            .print-container {
-              width: 100%;
-              padding: 12px;
-              font-family: Arial, sans-serif;
-              position: static !important;
-              visibility: visible !important;
-              height: auto !important;
-              overflow: visible !important;
-            }
           }
           @media screen {
-            .print-container {
+            .print-only {
               position: absolute;
               left: -9999px;
               top: -9999px;

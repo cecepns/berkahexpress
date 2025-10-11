@@ -145,13 +145,14 @@ const TransactionManagement = () => {
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Manajemen Transaksi</h1>
-        <p className="mt-2 text-gray-600">Kelola semua transaksi pengiriman</p>
-      </div>
+    <>
+      <div className="no-print">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Manajemen Transaksi</h1>
+          <p className="mt-2 text-gray-600">Kelola semua transaksi pengiriman</p>
+        </div>
 
-      {/* Search and Filters */}
+        {/* Search and Filters */}
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div className="flex space-x-4">
           <div className="relative">
@@ -549,11 +550,11 @@ const TransactionManagement = () => {
         </div>
       )}
 
-      {/* Hidden Print Component */}
-      <div style={{ display: 'none' }}>
-        <ResiPrint ref={printRef} transaction={selectedTransaction} />
       </div>
-    </div>
+      
+      {/* Hidden Print Component */}
+      <ResiPrint ref={printRef} transaction={selectedTransaction} />
+    </>
   );
 };
 

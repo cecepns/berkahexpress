@@ -41,3 +41,32 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Print Styles - Hide everything except print content */
+@media print {
+  /* Hide everything by default */
+  body > * {
+    display: none !important;
+  }
+  
+  /* Show only print container */
+  body .print-only {
+    display: block !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Ensure print container content is visible */
+  body .print-only * {
+    visibility: visible !important;
+  }
+  
+  /* Hide non-print content explicitly */
+  .no-print {
+    display: none !important;
+  }
+}

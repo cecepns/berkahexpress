@@ -259,8 +259,9 @@ const Transactions = () => {
   };
 
   return (
-    <div className="p-4 md:p-6">
-      <h1 className="text-xl font-semibold mb-4">Transaksi Pengiriman</h1>
+    <>
+      <div className="p-4 md:p-6 no-print">
+        <h1 className="text-xl font-semibold mb-4">Transaksi Pengiriman</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow">
         <div>
@@ -694,12 +695,11 @@ const Transactions = () => {
           </div>
         </div>
       )}
+      </div>
 
       {/* Hidden Print Component - positioned offscreen for reliable printing on mobile */}
-      <div>
-        <ResiPrint ref={printRef} transaction={selectedTransaction} isCustomer={true} />
-      </div>
-    </div>
+      <ResiPrint ref={printRef} transaction={selectedTransaction} isCustomer={true} />
+    </>
   );
 };
 
