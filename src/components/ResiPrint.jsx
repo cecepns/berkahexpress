@@ -78,7 +78,7 @@ const ResiPrint = forwardRef(({ transaction, isCustomer = false }, ref) => {
             <div style={{ fontWeight: 'bold' }}>{transaction.receiver_name}</div>
             <div>{transaction.receiver_phone}</div>
             <div>{transaction.receiver_address}</div>
-            <div style={{ fontWeight: 'bold', marginTop: '2px' }}>📍 {transaction.destination}</div>
+            <div style={{ fontWeight: 'bold', marginTop: '2px' }}>{transaction.destination}</div>
           </div>
         </div>
 
