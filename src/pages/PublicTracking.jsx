@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { trackingAPI } from '../utils/api';
 import { toast } from 'react-toastify';
-import { TruckIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { TruckIcon, ClockIcon, CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import logo from '../assets/logo.png';
 
@@ -87,6 +87,8 @@ const PublicTracking = () => {
         return <TruckIcon className="h-5 w-5" />;
       case 'sukses':
         return <CheckCircleIcon className="h-5 w-5" />;
+      case 'canceled':
+        return <XMarkIcon className="h-5 w-5" />;
       default:
         return <ClockIcon className="h-5 w-5" />;
     }

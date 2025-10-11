@@ -122,6 +122,8 @@ const TrackingManagement = () => {
         return 'text-blue-600 bg-blue-100';
       case 'sukses':
         return 'text-green-600 bg-green-100';
+      case 'canceled':
+        return 'text-red-600 bg-red-100';
       default:
         return 'text-gray-600 bg-gray-100';
     }
@@ -135,6 +137,8 @@ const TrackingManagement = () => {
         return <TruckIcon className="h-4 w-4" />;
       case 'sukses':
         return <CheckCircleIcon className="h-4 w-4" />;
+      case 'canceled':
+        return <XMarkIcon className="h-4 w-4" />;
       default:
         return <ClockIcon className="h-4 w-4" />;
     }
