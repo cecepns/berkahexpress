@@ -240,7 +240,7 @@ const TransactionManagement = () => {
                       {transaction.weight} kg
                     </div>
                     <div className="text-sm text-gray-500">
-                      {transaction.volume ? Number(transaction.volume).toFixed(4) : '0.0000'} m³
+                      {transaction.volume ? Number(transaction.volume).toFixed(2) : '0.00'} kg (vol)
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -364,7 +364,7 @@ const TransactionManagement = () => {
                   <p className="text-sm text-gray-900">
                     Dimensi: {selectedTransaction.length} x {selectedTransaction.width} x {selectedTransaction.height} cm
                   </p>
-                  <p className="text-sm text-gray-500">Volume: {selectedTransaction.volume ? Number(selectedTransaction.volume).toFixed(4) : '0.0000'} m³</p>
+                  <p className="text-sm text-gray-500">Volume Weight: {selectedTransaction.volume ? Number(selectedTransaction.volume).toFixed(2) : '0.00'} kg</p>
                 </div>
 
                 <div className="border-t pt-4">

@@ -985,7 +985,7 @@ app.post('/api/transactions', authenticateToken, upload.fields([
       }
 
       const price = priceResults[0];
-      const volume = (length * width * height) / 1000000; // Convert to cubic meters
+      const volume = (length * width * height) / 5000; // Volume weight in kg
       
       // Function to calculate price based on tiered or flat pricing
       const calculatePrice = (callback) => {

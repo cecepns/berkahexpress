@@ -110,7 +110,7 @@ const ResiPrint = forwardRef(({ transaction, isCustomer = false }, ref) => {
             <div><strong>Kategori:</strong> {transaction.item_category || 'NORMAL'}</div>
             <div><strong>Berat:</strong> {transaction.weight} kg</div>
             <div><strong>Dimensi:</strong> {transaction.length} x {transaction.width} x {transaction.height} cm</div>
-            <div><strong>Volume:</strong> {transaction.volume ? Number(transaction.volume).toFixed(4) : '0.0000'} m³</div>
+            <div><strong>Volume Weight:</strong> {transaction.volume ? Number(transaction.volume).toFixed(2) : '0.00'} kg</div>
           </div>
         </div>
 

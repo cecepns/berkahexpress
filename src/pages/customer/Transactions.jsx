@@ -117,7 +117,7 @@ const Transactions = () => {
   const destinationOptions = useMemo(() => {
     return prices.map((p) => ({
       value: p.country,
-      label: `${p.country} ${p.use_tiered_pricing ? '(Harga Bertingkat ⚡)' : `(Rp${Number(p.price_per_kg).toLocaleString('id-ID')}/kg, Rp${Number(p.price_per_volume).toLocaleString('id-ID')}/m³)`}`,
+      label: `${p.country} ${p.use_tiered_pricing ? '(Harga Bertingkat ⚡)' : `(Rp${Number(p.price_per_kg).toLocaleString('id-ID')}/kg, Rp${Number(p.price_per_volume).toLocaleString('id-ID')}/kg vol)`}`,
       isDisabled: p.category === 'SENSITIF' || p.category === 'BATERAI',
       priceData: p
     }));
@@ -133,7 +133,7 @@ const Transactions = () => {
     const length = Number(form.length || 0);
     const width = Number(form.width || 0);
     const height = Number(form.height || 0);
-    const volume = (length * width * height) / 1000000; // m3
+    const volume = (length * width * height) / 5000; // volume weight in kg
     
     let pricePerKg = selectedPrice.price_per_kg;
     let pricePerVolume = selectedPrice.price_per_volume;
@@ -476,7 +476,7 @@ const Transactions = () => {
               <span>Berat: {form.weight} kg × Rp{Number(estimate.pricePerKg).toLocaleString('id-ID')} = Rp{(Number(form.weight) * estimate.pricePerKg).toLocaleString('id-ID')}</span>
             </div>
             <div className="text-xs text-gray-600">
-              <span>Volume: {estimate.volume.toFixed(4)} m³ × Rp{Number(estimate.pricePerVolume).toLocaleString('id-ID')} = Rp{(estimate.volume * estimate.pricePerVolume).toLocaleString('id-ID')}</span>
+              <span>Volume Weight: {estimate.volume.toFixed(2)} kg × Rp{Number(estimate.pricePerVolume).toLocaleString('id-ID')} = Rp{(estimate.volume * estimate.pricePerVolume).toLocaleString('id-ID')}</span>
             </div>
             <div className="text-xs text-gray-500 italic">
               * Sistem menggunakan yang lebih besar antara perhitungan berat dan volume
@@ -499,7 +499,7 @@ const Transactions = () => {
               <th className="text-left p-2">Tujuan</th>
               <th className="text-left p-2">Penerima</th>
               <th className="text-left p-2">Berat (kg)</th>
-              <th className="text-left p-2">Volume (m³)</th>
+              <th className="text-left p-2">Vol Weight (kg)</th>
               <th className="text-left p-2">Total (Rp)</th>
               <th className="text-left p-2">Status</th>
               <th className="text-left p-2">Aksi</th>
@@ -516,7 +516,7 @@ const Transactions = () => {
                   <div className="text-xs text-gray-500">{t.receiver_phone || ''}</div>
                 </td>
                 <td className="p-2">{Number(t.weight)}</td>
-                <td className="p-2">{Number(t.volume).toFixed(3)}</td>
+                <td className="p-2">{Number(t.volume).toFixed(2)}</td>
                 <td className="p-2">{Number(t.total_price).toLocaleString('id-ID')}</td>
                 <td className="p-2">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(t.status)}`}>
@@ -617,7 +617,7 @@ const Transactions = () => {
                 <p className="text-sm text-gray-900">
                   Dimensi: {selectedTransaction.length} x {selectedTransaction.width} x {selectedTransaction.height} cm
                 </p>
-                <p className="text-sm text-gray-500">Volume: {selectedTransaction.volume ? Number(selectedTransaction.volume).toFixed(4) : '0.0000'} m³</p>
+                <p className="text-sm text-gray-500">Volume Weight: {selectedTransaction.volume ? Number(selectedTransaction.volume).toFixed(2) : '0.00'} kg</p>
               </div>
 
               <div className="border-t pt-4">

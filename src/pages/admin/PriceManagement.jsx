@@ -397,7 +397,7 @@ const PriceManagement = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Harga per Volume m³ (Rp)</label>
+                        <label className="block text-sm font-medium text-gray-700">Harga per Volume Weight /5000 (Rp/kg)</label>
                         <input
                           type="number"
                           required
@@ -429,7 +429,7 @@ const PriceManagement = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Harga per Volume m³ (Rp)</label>
+                        <label className="block text-sm font-medium text-gray-700">Harga per Volume Weight /5000 (Rp/kg)</label>
                         <input
                           type="number"
                           required
@@ -527,7 +527,7 @@ const PriceManagement = () => {
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-700">Per m³ (Rp)</label>
+                                <label className="block text-xs font-medium text-gray-700">Per Vol /5000 (Rp/kg)</label>
                                 <input
                                   type="number"
                                   required
@@ -559,7 +559,7 @@ const PriceManagement = () => {
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-700">Per m³ (Rp)</label>
+                                <label className="block text-xs font-medium text-gray-700">Per Vol /5000 (Rp/kg)</label>
                                 <input
                                   type="number"
                                   required
