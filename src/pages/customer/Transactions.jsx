@@ -6,6 +6,7 @@ import { useReactToPrint } from 'react-to-print';
 import { useNavigate } from 'react-router-dom';
 import { PrinterIcon, EyeIcon, MapPinIcon } from '@heroicons/react/24/outline';
 import ResiPrint from '../../components/ResiPrint';
+import Select from 'react-select';
 
 const Transactions = () => {
   const { refreshProfile } = useAuth();
@@ -112,6 +113,15 @@ const Transactions = () => {
     };
     load();
   }, []);
+
+  const destinationOptions = useMemo(() => {
+    return prices.map((p) => ({
+      value: p.country,
+      label: `${p.country} ${p.use_tiered_pricing ? '(Harga Bertingkat ⚡)' : `(Rp${Number(p.price_per_kg).toLocaleString('id-ID')}/kg, Rp${Number(p.price_per_volume).toLocaleString('id-ID')}/m³)`}`,
+      isDisabled: p.category === 'SENSITIF' || p.category === 'BATERAI',
+      priceData: p
+    }));
+  }, [prices]);
 
   const selectedPrice = useMemo(() => {
     return prices.find((p) => p.country === form.destination && p.category === form.item_category) || null;
@@ -252,20 +262,29 @@ const Transactions = () => {
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow">
         <div>
           <label className="block text-sm font-medium mb-1">Tujuan (Negara) / Sensitive / Battery </label>
-          <select
+          <Select
             name="destination"
-            className="w-full border rounded px-3 py-2"
-            value={form.destination}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Pilih tujuan</option>
-            {prices.map((p) => (
-              <option key={p.id} value={p.country} disabled={p.category === 'SENSITIF' || p.category === 'BATERAI'}>
-                {p.country} {p.use_tiered_pricing ? '(Harga Bertingkat ⚡)' : `(Rp${Number(p.price_per_kg).toLocaleString('id-ID')}/kg, Rp${Number(p.price_per_volume).toLocaleString('id-ID')}/m³)`}
-              </option>
-            ))}
-          </select>
+            options={destinationOptions}
+            value={destinationOptions.find(opt => opt.value === form.destination) || null}
+            onChange={(selectedOption) => {
+              setForm((prev) => ({ ...prev, destination: selectedOption ? selectedOption.value : '' }));
+            }}
+            placeholder="Pilih tujuan..."
+            isClearable
+            isSearchable
+            className="react-select-container"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base) => ({
+                ...base,
+                minHeight: '42px',
+                borderColor: '#d1d5db',
+                '&:hover': {
+                  borderColor: '#9ca3af'
+                }
+              })
+            }}
+          />
         </div>
 
         {/* Receiver Information Section */}
@@ -565,12 +584,12 @@ const Transactions = () => {
                 </span>
               </div>
 
-              {selectedTransaction.expedition_resi && (
+              {/* {selectedTransaction.expedition_resi && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Resi Ekspedisi</label>
                   <p className="mt-1 text-sm font-mono font-semibold text-blue-600">{selectedTransaction.expedition_resi}</p>
                 </div>
-              )}
+              )} */}
 
               <div className="border-t pt-4">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Informasi Penerima</h4>

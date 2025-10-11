@@ -43,16 +43,24 @@ const ResiPrint = forwardRef(({ transaction, isCustomer = false }, ref) => {
           <p style={{ margin: '3px 0', fontSize: '10px' }}>Jasa Pengiriman Terpercaya</p>
         </div>
 
-        {/* ID Order & Resi Section */}
+        {/* Resi Section */}
         <div style={{ textAlign: 'left', marginBottom: '10px', padding: '8px', backgroundColor: 'white' }}>
           <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <strong>ID Order:</strong> #{transaction.id}
-            </div>
-            {!isCustomer && (
+            {isCustomer ? (
               <div style={{ fontFamily: 'monospace', fontSize: '11px' }}>
-                <strong>No. Resi:</strong> {transaction.resi}
+                <strong>ID Order:</strong> {transaction.resi}
               </div>
+            ) : (
+              <>
+                <div style={{ fontFamily: 'monospace', fontSize: '11px' }}>
+                  <strong>ID Order:</strong> {transaction.resi}
+                </div>
+                {transaction.expedition_resi && (
+                  <div style={{ fontFamily: 'monospace', fontSize: '11px' }}>
+                    <strong>No. Resi:</strong> {transaction.expedition_resi}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -103,11 +111,11 @@ const ResiPrint = forwardRef(({ transaction, isCustomer = false }, ref) => {
         </div>
 
         {/* Barcode Section - Only show at bottom for admin */}
-        {!isCustomer && (
+        {!isCustomer && transaction.expedition_resi && (
           <div style={{ marginTop: '15px', padding: '8px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ display: 'inline-block' }}>
               <Barcode 
-                value={transaction.resi} 
+                value={transaction.expedition_resi} 
                 width={1.5}
                 height={35}
                 displayValue={true}
@@ -128,6 +136,7 @@ ResiPrint.propTypes = {
   transaction: PropTypes.shape({
     id: PropTypes.number,
     resi: PropTypes.string,
+    expedition_resi: PropTypes.string,
     created_at: PropTypes.string,
     user_name: PropTypes.string,
     user_phone: PropTypes.string,
