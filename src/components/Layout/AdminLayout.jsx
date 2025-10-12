@@ -38,7 +38,7 @@ const AdminLayout = ({ children }) => {
     { name: "Manajemen Topup", href: "/admin/topups", icon: BanknotesIcon },
     { name: "Rekening Bank", href: "/admin/accounts", icon: CreditCardIcon },
     { name: "Transaksi", href: "/admin/transactions", icon: ShoppingCartIcon },
-    { name: "Tracking", href: "/admin/tracking", icon: TruckIcon },
+    // { name: "Tracking", href: "/admin/tracking", icon: TruckIcon },
   ];
 
   const handleLogout = () => {

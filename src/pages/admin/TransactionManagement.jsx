@@ -469,7 +469,7 @@ const TransactionManagement = () => {
                         <div>
                           <label className="block text-xs font-medium text-gray-500">Foto Alamat</label>
                           <a 
-                            href={`https://api-inventory.isavralabel.com/berkahexpress/uploads-berkahexpress/${selectedTransaction.foto_alamat}`} 
+                            href={`https://api-inventory.isavralabel.com/berkahexpress/uploads/${selectedTransaction.foto_alamat}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-sm text-blue-600 hover:text-blue-800"
@@ -482,7 +482,7 @@ const TransactionManagement = () => {
                         <div>
                           <label className="block text-xs font-medium text-gray-500">Tanda Pengenal Depan</label>
                           <a 
-                            href={`https://api-inventory.isavralabel.com/berkahexpress/uploads-berkahexpress/${selectedTransaction.tanda_pengenal_depan}`} 
+                            href={`https://api-inventory.isavralabel.com/berkahexpress/uploads/${selectedTransaction.tanda_pengenal_depan}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-sm text-blue-600 hover:text-blue-800"
@@ -495,7 +495,7 @@ const TransactionManagement = () => {
                         <div>
                           <label className="block text-xs font-medium text-gray-500">Tanda Pengenal Belakang</label>
                           <a 
-                            href={`https://api-inventory.isavralabel.com/berkahexpress/uploads-berkahexpress/${selectedTransaction.tanda_pengenal_belakang}`} 
+                            href={`https://api-inventory.isavralabel.com/berkahexpress/uploads/${selectedTransaction.tanda_pengenal_belakang}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-sm text-blue-600 hover:text-blue-800"
