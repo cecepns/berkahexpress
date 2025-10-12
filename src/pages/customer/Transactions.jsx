@@ -129,10 +129,17 @@ const Transactions = () => {
   }, []);
 
   const destinationOptions = useMemo(() => {
-    return prices.map((p) => ({
+    // Group prices by country to show unique countries
+    const countryMap = new Map();
+    prices.forEach((p) => {
+      if (!countryMap.has(p.country)) {
+        countryMap.set(p.country, p);
+      }
+    });
+    
+    return Array.from(countryMap.values()).map((p) => ({
       value: p.country,
       label: `${p.country} ${p.use_tiered_pricing ? '(Harga Bertingkat ⚡)' : `(Rp${Number(p.price_per_kg).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/kg, Rp${Number(p.price_per_volume).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/kg vol)`}`,
-      isDisabled: p.category === 'SENSITIF' || p.category === 'BATERAI',
       priceData: p
     }));
   }, [prices]);
