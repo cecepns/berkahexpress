@@ -4,21 +4,21 @@ import logo from '../assets/logo.png';
 // Define styles for PDF
 const styles = StyleSheet.create({
   page: {
-    padding: 20,
+    padding: 15,
     fontSize: 10,
     fontFamily: 'Helvetica',
     backgroundColor: '#ffffff',
   },
   header: {
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
     borderBottom: '2pt solid #000',
-    paddingBottom: 8,
+    paddingBottom: 6,
   },
   logo: {
-    width: 60,
+    width: 50,
     height: 'auto',
-    marginBottom: 5,
+    marginBottom: 4,
     alignSelf: 'center',
   },
   tagline: {
@@ -26,8 +26,8 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   resiSection: {
-    marginBottom: 10,
-    padding: 8,
+    marginBottom: 6,
+    padding: 6,
   },
   resiText: {
     fontSize: 10,
@@ -40,8 +40,8 @@ const styles = StyleSheet.create({
   },
   card: {
     border: '1pt solid #333',
-    padding: 10,
-    marginBottom: 10,
+    padding: 8,
+    marginBottom: 6,
     borderRadius: 3,
   },
   cardTitle: {
@@ -71,12 +71,13 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   barcodeSection: {
-    marginTop: 15,
+    marginTop: 8,
     textAlign: 'center',
   },
   barcodeImage: {
-    width: '80%',
+    width: '50%',
     height: 'auto',
+    maxHeight: 40,
     alignSelf: 'center',
   },
 });
