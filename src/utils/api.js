@@ -51,6 +51,7 @@ export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
   getProfile: () => api.get('/auth/profile'),
+  updateProfile: (profileData) => api.put('/auth/profile', profileData),
 };
 
 // User management endpoints
@@ -97,9 +98,10 @@ export const topupAPI = {
 
 // Transaction management endpoints
 export const transactionAPI = {
-  getAllTransactions: () => api.get('/transactions'),
-  getUserTransactions: () => api.get('/transactions/user'),
+  getAllTransactions: (page = 1, limit = 10) => api.get(`/transactions?page=${page}&limit=${limit}`),
+  getUserTransactions: (page = 1, limit = 10) => api.get(`/transactions/user?page=${page}&limit=${limit}`),
   createTransaction: (transactionData) => api.post('/transactions', transactionData),
+  updateTransaction: (id, transactionData) => api.put(`/transactions/${id}`, transactionData),
   updateTransactionStatus: (id, status) => api.put(`/transactions/${id}/status`, { status }),
   updateTransactionExpedition: (id, expeditionData) => api.put(`/transactions/${id}/expedition`, expeditionData),
   cancelTransaction: (id) => api.put(`/transactions/${id}/cancel`),

@@ -12,6 +12,7 @@ const PublicTracking = () => {
   const [tracking, setTracking] = useState(null);
   const [externalTracking, setExternalTracking] = useState(null);
   const [loading, setLoading] = useState(false);
+  const mitraParam = searchParams.get('mitra');
 
   const searchTracking = async (resiNumber) => {
     if (!resiNumber.trim()) {
@@ -99,12 +100,25 @@ const PublicTracking = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <img src={logo} alt="BerkahExpress Logo" className="h-24 w-auto" />
-          </div>
-          <p className="text-xl text-gray-600 mb-8">
-            Lacak Paket Anda
-          </p>
+          {mitraParam ? (
+            <>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {mitraParam}
+              </h1>
+              <p className="text-xl text-gray-600 mb-8">
+                Lacak Paket Anda
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-center mb-6">
+                <img src={logo} alt="BerkahExpress Logo" className="h-24 w-auto" />
+              </div>
+              <p className="text-xl text-gray-600 mb-8">
+                Lacak Paket Anda
+              </p>
+            </>
+          )}
         </div>
 
         {/* Search Form */}

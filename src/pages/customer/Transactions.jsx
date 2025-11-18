@@ -16,7 +16,12 @@ const Transactions = () => {
   const [submitting, setSubmitting] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [form, setForm] = useState({
+    sender_name: '',
+    sender_phone: '',
+    sender_address: '',
     destination: '',
     receiver_name: '',
     receiver_phone: '',
@@ -72,6 +77,9 @@ const Transactions = () => {
   const handleReorder = (transaction) => {
     // Fill form with transaction data
     setForm({
+      sender_name: transaction.sender_name || transaction.user_name || '',
+      sender_phone: transaction.sender_phone || transaction.user_phone || '',
+      sender_address: transaction.sender_address || transaction.user_address || '',
       destination: transaction.destination || '',
       receiver_name: transaction.receiver_name || '',
       receiver_phone: transaction.receiver_phone || '',
@@ -115,10 +123,11 @@ const Transactions = () => {
       try {
         const [priceRes, trxRes] = await Promise.all([
           priceAPI.getAllPrices(),
-          transactionAPI.getUserTransactions(),
+          transactionAPI.getUserTransactions(currentPage, 10),
         ]);
         setPrices(priceRes.data.data || []);
         setTransactions(trxRes.data.data || []);
+        setTotalPages(trxRes.data.totalPages || 1);
       } catch {
         // handled globally
       } finally {
@@ -126,7 +135,7 @@ const Transactions = () => {
       }
     };
     load();
-  }, []);
+  }, [currentPage]);
 
   const destinationOptions = useMemo(() => {
     // Group prices by country to show unique countries
@@ -196,10 +205,10 @@ const Transactions = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { destination, receiver_name, receiver_phone, receiver_address, item_category, weight, length, width, height, kode_pos_penerima, nomor_identitas_penerima, email_penerima } = form;
+    const { sender_name, sender_phone, sender_address, destination, receiver_name, receiver_phone, receiver_address, item_category, weight, length, width, height, kode_pos_penerima, nomor_identitas_penerima, email_penerima } = form;
     
     // Basic validation
-    if (!destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height) {
+    if (!sender_name || !sender_phone || !sender_address || !destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height) {
       toast.error('Semua field wajib diisi');
       return;
     }
@@ -220,6 +229,9 @@ const Transactions = () => {
     try {
       // Create FormData for file upload
       const formData = new FormData();
+      formData.append('sender_name', sender_name);
+      formData.append('sender_phone', sender_phone);
+      formData.append('sender_address', sender_address);
       formData.append('destination', destination);
       formData.append('receiver_name', receiver_name);
       formData.append('receiver_phone', receiver_phone);
@@ -245,6 +257,9 @@ const Transactions = () => {
       
       // Reset form
       setForm({ 
+        sender_name: '',
+        sender_phone: '',
+        sender_address: '',
         destination: '', 
         receiver_name: '',
         receiver_phone: '',
@@ -268,8 +283,9 @@ const Transactions = () => {
       const fileInputs = document.querySelectorAll('input[type="file"]');
       fileInputs.forEach(input => input.value = '');
       
-      const res = await transactionAPI.getUserTransactions();
+      const res = await transactionAPI.getUserTransactions(currentPage, 10);
       setTransactions(res.data.data || []);
+      setTotalPages(res.data.totalPages || 1);
       // refresh profile/balance after successful transaction
       refreshProfile();
     } catch {
@@ -285,6 +301,49 @@ const Transactions = () => {
         <h1 className="text-xl font-semibold mb-4">Transaksi Pengiriman</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow">
+        {/* Sender Information Section */}
+        <div className="border-b pb-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Informasi Pengirim</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nama Pengirim *</label>
+              <input 
+                type="text" 
+                name="sender_name" 
+                value={form.sender_name} 
+                onChange={handleChange} 
+                className="w-full border rounded px-3 py-2" 
+                placeholder="Nama lengkap pengirim"
+                required 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Nomor Telepon Pengirim *</label>
+              <input 
+                type="tel" 
+                name="sender_phone" 
+                value={form.sender_phone} 
+                onChange={handleChange} 
+                className="w-full border rounded px-3 py-2" 
+                placeholder="+628123456789"
+                required 
+              />
+            </div>
+          </div>
+          <div className="mt-3">
+            <label className="block text-sm font-medium mb-1">Alamat Lengkap Pengirim *</label>
+            <textarea 
+              name="sender_address" 
+              value={form.sender_address} 
+              onChange={handleChange} 
+              className="w-full border rounded px-3 py-2" 
+              rows="3"
+              placeholder="Alamat lengkap pengirim"
+              required
+            />
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Tujuan (Negara) / Sensitive / Battery </label>
           <Select
@@ -601,6 +660,53 @@ const Transactions = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between bg-white px-4 py-3 rounded shadow">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sebelumnya
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Selanjutnya
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Halaman <span className="font-medium">{currentPage}</span> dari <span className="font-medium">{totalPages}</span>
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Sebelumnya
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Selanjutnya
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {showDetailModal && selectedTransaction && (

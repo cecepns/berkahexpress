@@ -8,7 +8,8 @@ import {
   TruckIcon,
   Bars3Icon,
   XMarkIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 import Logo from '../../assets/logo.png';
@@ -22,8 +23,9 @@ const CustomerLayout = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Transaksi', href: '/transactions', icon: ShoppingCartIcon },
-    { name: 'Topup', href: '/topup', icon: BanknotesIcon },
+    // Topup hidden for customer and mitra
     { name: 'Tracking', href: '/tracking', icon: TruckIcon },
+    { name: 'Profile', href: '/profile', icon: UserIcon },
   ];
 
   const handleLogout = () => {

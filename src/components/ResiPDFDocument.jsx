@@ -85,13 +85,23 @@ const styles = StyleSheet.create({
 const ResiPDFDocument = ({ transaction, isCustomer = false, barcodeBase64 = null }) => {
   if (!transaction) return null;
 
+  // Check if user is mitra and has ekspedisi_name
+  const isMitra = transaction.user_role === 'mitra';
+  const expeditionName = transaction.ekspedisi_name;
+
   return (
     <Document>
       <Page size="A5" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Image src={logo} style={styles.logo} />
-          <Text style={styles.tagline}>Jasa Pengiriman Terpercaya</Text>
+          {isMitra && expeditionName ? (
+            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 4 }}>{expeditionName}</Text>
+          ) : !isMitra ? (
+            <>
+              <Image src={logo} style={styles.logo} />
+              <Text style={styles.tagline}>Jasa Pengiriman Terpercaya</Text>
+            </>
+          ) : null}
         </View>
 
         {/* Resi Section */}
@@ -112,9 +122,9 @@ const ResiPDFDocument = ({ transaction, isCustomer = false, barcodeBase64 = null
         <View style={styles.card}>
           <Text style={styles.cardTitle}>PENGIRIM</Text>
           <View style={styles.cardContent}>
-            <Text style={[styles.row, styles.bold]}>{transaction.user_name || '-'}</Text>
-            <Text style={styles.row}>{transaction.user_phone || '-'}</Text>
-            <Text style={styles.row}>{transaction.user_address || '-'}</Text>
+            <Text style={[styles.row, styles.bold]}>{transaction.sender_name || transaction.user_name || '-'}</Text>
+            <Text style={styles.row}>{transaction.sender_phone || transaction.user_phone || '-'}</Text>
+            <Text style={styles.row}>{transaction.sender_address || transaction.user_address || '-'}</Text>
           </View>
         </View>
 
@@ -150,7 +160,7 @@ const ResiPDFDocument = ({ transaction, isCustomer = false, barcodeBase64 = null
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerRow}>
-            Terima kasih telah menggunakan layanan Berkah Express
+            {isMitra && expeditionName ? `Terima kasih telah menggunakan layanan ${expeditionName}` : 'Terima kasih telah menggunakan layanan Berkah Express'}
           </Text>
           <Text style={styles.footerRow}>
             Dokumen ini sah tanpa tanda tangan

@@ -10,6 +10,10 @@ import JsBarcode from 'jsbarcode';
 export const generateResiHTML = (transaction, isCustomer = false) => {
   if (!transaction) return '';
 
+  // Check if user is mitra and has ekspedisi_name
+  const isMitra = transaction.user_role === 'mitra';
+  const expeditionName = transaction.ekspedisi_name;
+
   const barcodeDataURL = transaction.expedition_resi 
     ? `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(transaction.expedition_resi)}&code=Code128&multiplebarcodes=false&translate-esc=false&unit=Fit&dpi=96&imagetype=Gif&rotation=0&color=%23000000&bgcolor=%23ffffff&qunit=Mm&quiet=0`
     : '';
@@ -151,10 +155,14 @@ export const generateResiHTML = (transaction, isCustomer = false) => {
   <div class="container">
     <!-- Header -->
     <div class="header">
-      <div class="header-content">
-        <img src="${logo}" alt="Berkah Express Logo" class="logo" />
-      </div>
-      <p class="tagline">Jasa Pengiriman Terpercaya</p>
+      ${isMitra && expeditionName ? `
+        <h1 style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">${expeditionName}</h1>
+      ` : !isMitra ? `
+        <div class="header-content">
+          <img src="${logo}" alt="Berkah Express Logo" class="logo" />
+        </div>
+        <p class="tagline">Jasa Pengiriman Terpercaya</p>
+      ` : ''}
     </div>
 
     <!-- Resi Section -->
@@ -181,9 +189,9 @@ export const generateResiHTML = (transaction, isCustomer = false) => {
     <div class="card">
       <div class="card-title">PENGIRIM</div>
       <div class="card-content">
-        <div style="font-weight: bold;">${transaction.user_name || '-'}</div>
-        <div>${transaction.user_phone || '-'}</div>
-        <div>${transaction.user_address || '-'}</div>
+        <div style="font-weight: bold;">${transaction.sender_name || transaction.user_name || '-'}</div>
+        <div>${transaction.sender_phone || transaction.user_phone || '-'}</div>
+        <div>${transaction.sender_address || transaction.user_address || '-'}</div>
       </div>
     </div>
 
@@ -212,7 +220,7 @@ export const generateResiHTML = (transaction, isCustomer = false) => {
 
     <!-- Footer -->
     <div class="footer">
-      <div>Terima kasih telah menggunakan layanan Berkah Express | Dokumen ini sah tanpa tanda tangan</div>
+      <div>Terima kasih telah menggunakan layanan ${isMitra && expeditionName ? expeditionName : 'Berkah Express'} | Dokumen ini sah tanpa tanda tangan</div>
       <div>Dicetak: ${new Date().toLocaleString('id-ID')}</div>
     </div>
 

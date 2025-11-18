@@ -27,6 +27,7 @@ import TrackingManagement from './pages/admin/TrackingManagement';
 import CustomerDashboard from './pages/customer/CustomerDashboard';
 import Topup from './pages/customer/Topup';
 import Transactions from './pages/customer/Transactions';
+import EditProfile from './pages/customer/EditProfile';
 
 function App() {
   return (
@@ -36,7 +37,7 @@ function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            {/* Register feature hidden */}
             <Route path="/tracking" element={<PublicTracking />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -91,6 +92,17 @@ function App() {
                 <ProtectedRoute>
                   <CustomerLayout>
                     <Topup />
+                  </CustomerLayout>
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <CustomerLayout>
+                    <EditProfile />
                   </CustomerLayout>
                 </ProtectedRoute>
               } 

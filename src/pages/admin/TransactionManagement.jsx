@@ -18,10 +18,35 @@ const TransactionManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [expeditionForm, setExpeditionForm] = useState({
     expedition_id: '',
     expedition_resi: ''
+  });
+  const [editForm, setEditForm] = useState({
+    sender_name: '',
+    sender_phone: '',
+    sender_address: '',
+    destination: '',
+    receiver_name: '',
+    receiver_phone: '',
+    receiver_address: '',
+    item_category: 'NORMAL',
+    weight: '',
+    length: '',
+    width: '',
+    height: '',
+    kode_pos_penerima: '',
+    nomor_identitas_penerima: '',
+    email_penerima: '',
+  });
+  const [editFiles, setEditFiles] = useState({
+    foto_alamat: null,
+    tanda_pengenal_depan: null,
+    tanda_pengenal_belakang: null,
   });
 
   const handlePrint = (transaction) => {
@@ -50,12 +75,14 @@ const TransactionManagement = () => {
   useEffect(() => {
     fetchTransactions();
     fetchExpeditions();
-  }, []);
+  }, [currentPage, statusFilter]);
 
   const fetchTransactions = async () => {
     try {
-      const response = await transactionAPI.getAllTransactions();
+      setLoading(true);
+      const response = await transactionAPI.getAllTransactions(currentPage, 10);
       setTransactions(response.data.data);
+      setTotalPages(response.data.pagination?.totalPages || 1);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
@@ -126,6 +153,81 @@ const TransactionManagement = () => {
       setExpeditionForm({ expedition_id: '', expedition_resi: '' });
     }
     setShowModal(true);
+  };
+
+  const openEditModal = (transaction) => {
+    setSelectedTransaction(transaction);
+    setEditForm({
+      sender_name: transaction.sender_name || transaction.user_name || '',
+      sender_phone: transaction.sender_phone || transaction.user_phone || '',
+      sender_address: transaction.sender_address || transaction.user_address || '',
+      destination: transaction.destination || '',
+      receiver_name: transaction.receiver_name || '',
+      receiver_phone: transaction.receiver_phone || '',
+      receiver_address: transaction.receiver_address || '',
+      item_category: transaction.item_category || 'NORMAL',
+      weight: transaction.weight ? String(transaction.weight) : '',
+      length: transaction.length ? String(transaction.length) : '',
+      width: transaction.width ? String(transaction.width) : '',
+      height: transaction.height ? String(transaction.height) : '',
+      kode_pos_penerima: transaction.kode_pos_penerima || '',
+      nomor_identitas_penerima: transaction.nomor_identitas_penerima || '',
+      email_penerima: transaction.email_penerima || '',
+    });
+    setEditFiles({
+      foto_alamat: null,
+      tanda_pengenal_depan: null,
+      tanda_pengenal_belakang: null,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditFileChange = (e) => {
+    const { name, files: selectedFiles } = e.target;
+    if (selectedFiles && selectedFiles.length > 0) {
+      setEditFiles((prev) => ({ ...prev, [name]: selectedFiles[0] }));
+    }
+  };
+
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdateTransaction = async (e) => {
+    e.preventDefault();
+    if (!selectedTransaction) return;
+
+    const formData = new FormData();
+    formData.append('sender_name', editForm.sender_name);
+    formData.append('sender_phone', editForm.sender_phone);
+    formData.append('sender_address', editForm.sender_address);
+    formData.append('destination', editForm.destination);
+    formData.append('receiver_name', editForm.receiver_name);
+    formData.append('receiver_phone', editForm.receiver_phone);
+    formData.append('receiver_address', editForm.receiver_address);
+    formData.append('item_category', editForm.item_category);
+    formData.append('weight', Number(editForm.weight));
+    formData.append('length', Number(editForm.length));
+    formData.append('width', Number(editForm.width));
+    formData.append('height', Number(editForm.height));
+    
+    if (editForm.kode_pos_penerima) formData.append('kode_pos_penerima', editForm.kode_pos_penerima);
+    if (editForm.nomor_identitas_penerima) formData.append('nomor_identitas_penerima', editForm.nomor_identitas_penerima);
+    if (editForm.email_penerima) formData.append('email_penerima', editForm.email_penerima);
+    
+    if (editFiles.foto_alamat) formData.append('foto_alamat', editFiles.foto_alamat);
+    if (editFiles.tanda_pengenal_depan) formData.append('tanda_pengenal_depan', editFiles.tanda_pengenal_depan);
+    if (editFiles.tanda_pengenal_belakang) formData.append('tanda_pengenal_belakang', editFiles.tanda_pengenal_belakang);
+
+    try {
+      await transactionAPI.updateTransaction(selectedTransaction.id, formData);
+      toast.success('Transaksi berhasil diupdate');
+      setShowEditModal(false);
+      fetchTransactions();
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -280,6 +382,15 @@ const TransactionManagement = () => {
                     >
                       <EyeIcon className="h-4 w-4" />
                     </button>
+                    <button
+                      onClick={() => openEditModal(transaction)}
+                      className="text-indigo-600 hover:text-indigo-900 p-1"
+                      title="Edit Transaksi"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
                     {/* <button
                       onClick={() => handlePrint(transaction)}
                       className="text-green-600 hover:text-green-900 p-1"
@@ -319,6 +430,53 @@ const TransactionManagement = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between bg-white px-4 py-3 rounded shadow">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sebelumnya
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Selanjutnya
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Halaman <span className="font-medium">{currentPage}</span> dari <span className="font-medium">{totalPages}</span>
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Sebelumnya
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Selanjutnya
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {showModal && selectedTransaction && (
@@ -578,6 +736,276 @@ const TransactionManagement = () => {
         </div>
       )}
 
+      {/* Edit Transaction Modal */}
+      {showEditModal && selectedTransaction && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white my-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Edit Transaksi
+            </h3>
+            
+            <form onSubmit={handleUpdateTransaction} className="space-y-4">
+              {/* Sender Information */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Informasi Pengirim</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Nama Pengirim *</label>
+                    <input
+                      type="text"
+                      name="sender_name"
+                      value={editForm.sender_name}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Telepon Pengirim *</label>
+                    <input
+                      type="tel"
+                      name="sender_phone"
+                      value={editForm.sender_phone}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700">Alamat Pengirim *</label>
+                  <textarea
+                    name="sender_address"
+                    value={editForm.sender_address}
+                    onChange={handleEditFormChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    rows="2"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Receiver Information */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Informasi Penerima</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Tujuan *</label>
+                    <input
+                      type="text"
+                      name="destination"
+                      value={editForm.destination}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Nama Penerima *</label>
+                    <input
+                      type="text"
+                      name="receiver_name"
+                      value={editForm.receiver_name}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Telepon Penerima *</label>
+                    <input
+                      type="tel"
+                      name="receiver_phone"
+                      value={editForm.receiver_phone}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Kategori *</label>
+                    <select
+                      name="item_category"
+                      value={editForm.item_category}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      required
+                    >
+                      <option value="NORMAL">Normal</option>
+                      <option value="SENSITIF">Sensitif</option>
+                      <option value="BATERAI">Baterai</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700">Alamat Penerima *</label>
+                  <textarea
+                    name="receiver_address"
+                    value={editForm.receiver_address}
+                    onChange={handleEditFormChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    rows="2"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Package Details */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Detail Paket</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Berat (kg) *</label>
+                    <input
+                      type="number"
+                      name="weight"
+                      value={editForm.weight}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      step="0.01"
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Panjang (cm) *</label>
+                    <input
+                      type="number"
+                      name="length"
+                      value={editForm.length}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Lebar (cm) *</label>
+                    <input
+                      type="number"
+                      name="width"
+                      value={editForm.width}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Tinggi (cm) *</label>
+                    <input
+                      type="number"
+                      name="height"
+                      value={editForm.height}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                      min="0"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Identity Documents */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Dokumen Identitas (Opsional)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Kode Pos Penerima</label>
+                    <input
+                      type="text"
+                      name="kode_pos_penerima"
+                      value={editForm.kode_pos_penerima}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email Penerima</label>
+                    <input
+                      type="email"
+                      name="email_penerima"
+                      value={editForm.email_penerima}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Nomor Identitas Penerima</label>
+                    <input
+                      type="text"
+                      name="nomor_identitas_penerima"
+                      value={editForm.nomor_identitas_penerima}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Foto Alamat</label>
+                    <input
+                      type="file"
+                      name="foto_alamat"
+                      onChange={handleEditFileChange}
+                      accept="image/*"
+                      className="mt-1 block w-full text-sm text-gray-500"
+                    />
+                    {selectedTransaction.foto_alamat && (
+                      <p className="text-xs text-gray-500 mt-1">File saat ini: {selectedTransaction.foto_alamat}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Tanda Pengenal Depan</label>
+                    <input
+                      type="file"
+                      name="tanda_pengenal_depan"
+                      onChange={handleEditFileChange}
+                      accept="image/*"
+                      className="mt-1 block w-full text-sm text-gray-500"
+                    />
+                    {selectedTransaction.tanda_pengenal_depan && (
+                      <p className="text-xs text-gray-500 mt-1">File saat ini: {selectedTransaction.tanda_pengenal_depan}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Tanda Pengenal Belakang</label>
+                    <input
+                      type="file"
+                      name="tanda_pengenal_belakang"
+                      onChange={handleEditFileChange}
+                      accept="image/*"
+                      className="mt-1 block w-full text-sm text-gray-500"
+                    />
+                    {selectedTransaction.tanda_pengenal_belakang && (
+                      <p className="text-xs text-gray-500 mt-1">File saat ini: {selectedTransaction.tanda_pengenal_belakang}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setSelectedTransaction(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       </div>
     </>
   );

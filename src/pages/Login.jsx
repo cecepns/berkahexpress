@@ -105,14 +105,7 @@ const Login = () => {
             </button>
           </div>
 
-          <div className="text-center">
-            <span className="text-sm text-gray-600">
-              Belum punya akun?{' '}
-              <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
-                Daftar disini
-              </Link>
-            </span>
-          </div>
+          {/* Register feature hidden */}
         </form>
       </div>
     </div>

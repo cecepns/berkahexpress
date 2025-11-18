@@ -170,7 +170,7 @@ app.post('/api/auth/register', async (req, res) => {
 
 // Get profile
 app.get('/api/auth/profile', authenticateToken, (req, res) => {
-  db.query('SELECT id, name, email, phone, address, role, balance FROM users WHERE id = ?', [req.user.id], (err, results) => {
+  db.query('SELECT id, name, email, phone, address, role, balance, ekspedisi_name FROM users WHERE id = ?', [req.user.id], (err, results) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error' });
     }
@@ -180,6 +180,41 @@ app.get('/api/auth/profile', authenticateToken, (req, res) => {
     }
 
     res.json({ success: true, data: results[0] });
+  });
+});
+
+// Update profile
+app.put('/api/auth/profile', authenticateToken, (req, res) => {
+  const { name, phone, address, ekspedisi_name } = req.body;
+  const userId = req.user.id;
+
+  // Only allow mitra to update ekspedisi_name
+  let query, params;
+  if (req.user.role === 'mitra') {
+    query = 'UPDATE users SET name = ?, phone = ?, address = ?, ekspedisi_name = ? WHERE id = ?';
+    params = [name, phone, address, ekspedisi_name || null, userId];
+  } else {
+    query = 'UPDATE users SET name = ?, phone = ?, address = ? WHERE id = ?';
+    params = [name, phone, address, userId];
+  }
+
+  db.query(query, params, (err, results) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Return updated user
+    db.query('SELECT id, name, email, phone, address, role, balance, ekspedisi_name FROM users WHERE id = ?', [userId], (err, userResults) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      res.json({ success: true, message: 'Profile updated successfully', data: userResults[0] });
+    });
   });
 });
 
@@ -913,42 +948,109 @@ app.put('/api/topups/:id/status', authenticateToken, adminOnly, (req, res) => {
 
 // ==================== TRANSACTION ROUTES ====================
 
-// Get all transactions (admin) or user transactions
+// Get all transactions (admin) or user transactions with pagination
 app.get('/api/transactions', authenticateToken, (req, res) => {
-  let query = `
-    SELECT t.*, u.name as user_name, u.email as user_email, u.phone as user_phone
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+
+  let countQuery = `
+    SELECT COUNT(*) as total
     FROM transactions t 
     JOIN users u ON t.user_id = u.id
   `;
-  let params = [];
+  let countParams = [];
 
-  if (req.user.role === 'customer') {
-    query += ' WHERE t.user_id = ?';
-    params.push(req.user.id);
+  let dataQuery = `
+    SELECT t.*, u.name as user_name, u.email as user_email, u.phone as user_phone, u.address as user_address, u.role as user_role, u.ekspedisi_name
+    FROM transactions t 
+    JOIN users u ON t.user_id = u.id
+  `;
+  let dataParams = [];
+
+  if (req.user.role === 'customer' || req.user.role === 'mitra') {
+    countQuery += ' WHERE t.user_id = ?';
+    dataQuery += ' WHERE t.user_id = ?';
+    countParams.push(req.user.id);
+    dataParams.push(req.user.id);
   }
 
-  query += ' ORDER BY t.created_at DESC';
+  dataQuery += ' ORDER BY t.created_at DESC LIMIT ? OFFSET ?';
+  dataParams.push(limit, offset);
 
-  db.query(query, params, (err, results) => {
+  // Get total count
+  db.query(countQuery, countParams, (err, countResults) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Database error' });
     }
-    res.json({ success: true, data: results });
-  });
-});
 
-// Get user transactions
-app.get('/api/transactions/user', authenticateToken, (req, res) => {
-  db.query(
-    `SELECT t.*, u.name as user_name, u.phone as user_phone, u.address as user_address FROM transactions t 
-     JOIN users u ON t.user_id = u.id 
-     WHERE t.user_id = ? ORDER BY t.created_at DESC`,
-    [req.user.id],
-    (err, results) => {
+    const total = countResults[0].total;
+    const totalPages = Math.ceil(total / limit);
+
+    // Get paginated data
+    db.query(dataQuery, dataParams, (err, results) => {
       if (err) {
         return res.status(500).json({ success: false, message: 'Database error' });
       }
-      res.json({ success: true, data: results });
+
+      res.json({ 
+        success: true, 
+        data: results,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages
+        }
+      });
+    });
+  });
+});
+
+// Get user transactions with pagination
+app.get('/api/transactions/user', authenticateToken, (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+
+  // Get total count
+  db.query(
+    `SELECT COUNT(*) as total FROM transactions WHERE user_id = ?`,
+    [req.user.id],
+    (err, countResults) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      const total = countResults[0].total;
+      const totalPages = Math.ceil(total / limit);
+
+      // Get paginated data
+      db.query(
+        `SELECT t.*, u.name as user_name, u.phone as user_phone, u.address as user_address, u.role as user_role, u.ekspedisi_name
+         FROM transactions t 
+         JOIN users u ON t.user_id = u.id 
+         WHERE t.user_id = ? 
+         ORDER BY t.created_at DESC 
+         LIMIT ? OFFSET ?`,
+        [req.user.id, limit, offset],
+        (err, results) => {
+          if (err) {
+            return res.status(500).json({ success: false, message: 'Database error' });
+          }
+          res.json({ 
+            success: true, 
+            data: results,
+            totalPages,
+            pagination: {
+              page,
+              limit,
+              total,
+              totalPages
+            }
+          });
+        }
+      );
     }
   );
 });
@@ -960,6 +1062,9 @@ app.post('/api/transactions', authenticateToken, upload.fields([
   { name: 'tanda_pengenal_belakang', maxCount: 1 }
 ]), (req, res) => {
   const { 
+    sender_name,
+    sender_phone,
+    sender_address,
     destination,
     receiver_name,
     receiver_phone, 
@@ -974,7 +1079,7 @@ app.post('/api/transactions', authenticateToken, upload.fields([
     email_penerima
   } = req.body;
 
-  if (!destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height) {
+  if (!sender_name || !sender_phone || !sender_address || !destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height) {
     return res.status(400).json({ success: false, message: 'All required fields must be filled' });
   }
 
@@ -1087,14 +1192,14 @@ app.post('/api/transactions', authenticateToken, upload.fields([
             // Create transaction record
             db.query(
               `INSERT INTO transactions 
-               (user_id, resi, destination, receiver_name, receiver_phone, receiver_address, item_category,
+               (user_id, resi, sender_name, sender_phone, sender_address, destination, receiver_name, receiver_phone, receiver_address, item_category,
                 weight, length, width, height, volume, 
                 price_per_kg, price_per_volume, total_price,
                 foto_alamat, kode_pos_penerima, tanda_pengenal_depan, tanda_pengenal_belakang,
                 nomor_identitas_penerima, email_penerima) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
-                req.user.id, resi, destination, receiver_name, receiver_phone, receiver_address, item_category,
+                req.user.id, resi, sender_name, sender_phone, sender_address, destination, receiver_name, receiver_phone, receiver_address, item_category,
                 weightNum, lengthNum, widthNum, heightNum, volume, 
                 pricePerKg, pricePerVolume, totalPrice,
                 fotoAlamat, kode_pos_penerima || null, tandaPengenalDepan, tandaPengenalBelakang,
@@ -1244,6 +1349,102 @@ app.put('/api/transactions/:id/status', authenticateToken, adminOnly, (req, res)
   );
 });
 
+// Update transaction (admin only)
+app.put('/api/transactions/:id', authenticateToken, adminOnly, upload.fields([
+  { name: 'foto_alamat', maxCount: 1 },
+  { name: 'tanda_pengenal_depan', maxCount: 1 },
+  { name: 'tanda_pengenal_belakang', maxCount: 1 }
+]), (req, res) => {
+  const transactionId = req.params.id;
+  const {
+    sender_name,
+    sender_phone,
+    sender_address,
+    destination,
+    receiver_name,
+    receiver_phone,
+    receiver_address,
+    item_category,
+    weight,
+    length,
+    width,
+    height,
+    kode_pos_penerima,
+    nomor_identitas_penerima,
+    email_penerima
+  } = req.body;
+
+  // Validate required fields
+  if (!sender_name || !sender_phone || !sender_address || !destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height) {
+    return res.status(400).json({ success: false, message: 'All required fields must be filled' });
+  }
+
+  // Get existing transaction to preserve pricing and status
+  db.query('SELECT * FROM transactions WHERE id = ?', [transactionId], (err, existingResults) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    if (existingResults.length === 0) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+
+    const existingTransaction = existingResults[0];
+
+    // Handle file uploads - only update if new files are provided
+    const fotoAlamat = req.files?.foto_alamat ? req.files.foto_alamat[0].filename : existingTransaction.foto_alamat;
+    const tandaPengenalDepan = req.files?.tanda_pengenal_depan ? req.files.tanda_pengenal_depan[0].filename : existingTransaction.tanda_pengenal_depan;
+    const tandaPengenalBelakang = req.files?.tanda_pengenal_belakang ? req.files.tanda_pengenal_belakang[0].filename : existingTransaction.tanda_pengenal_belakang;
+
+    // Recalculate volume
+    const weightNum = Number(weight);
+    const lengthNum = Number(length);
+    const widthNum = Number(width);
+    const heightNum = Number(height);
+    const volume = (lengthNum * widthNum * heightNum) / 5000;
+
+    // Use existing pricing or recalculate if dimensions changed significantly
+    const pricePerKg = existingTransaction.price_per_kg;
+    const pricePerVolume = existingTransaction.price_per_volume;
+    const weightPrice = weightNum * pricePerKg;
+    const volumePrice = volume * pricePerVolume;
+    const totalPrice = Math.max(weightPrice, volumePrice);
+
+    // Update transaction
+    db.query(
+      `UPDATE transactions 
+       SET sender_name = ?, sender_phone = ?, sender_address = ?,
+           destination = ?, receiver_name = ?, receiver_phone = ?, receiver_address = ?,
+           item_category = ?, weight = ?, length = ?, width = ?, height = ?, volume = ?,
+           price_per_kg = ?, price_per_volume = ?, total_price = ?,
+           foto_alamat = ?, kode_pos_penerima = ?, tanda_pengenal_depan = ?, tanda_pengenal_belakang = ?,
+           nomor_identitas_penerima = ?, email_penerima = ?
+       WHERE id = ?`,
+      [
+        sender_name, sender_phone, sender_address,
+        destination, receiver_name, receiver_phone, receiver_address,
+        item_category, weightNum, lengthNum, widthNum, heightNum, volume,
+        pricePerKg, pricePerVolume, totalPrice,
+        fotoAlamat, kode_pos_penerima || null, tandaPengenalDepan, tandaPengenalBelakang,
+        nomor_identitas_penerima || null, email_penerima || null,
+        transactionId
+      ],
+      (err, results) => {
+        if (err) {
+          console.error('Transaction update error:', err);
+          return res.status(500).json({ success: false, message: 'Database error' });
+        }
+
+        if (results.affectedRows === 0) {
+          return res.status(404).json({ success: false, message: 'Transaction not found' });
+        }
+
+        res.json({ success: true, message: 'Transaction updated successfully' });
+      }
+    );
+  });
+});
+
 // Cancel transaction (admin only - for pending orders)
 app.put('/api/transactions/:id/cancel', authenticateToken, adminOnly, (req, res) => {
   const transactionId = req.params.id;
@@ -1340,14 +1541,14 @@ app.put('/api/transactions/:id/cancel', authenticateToken, adminOnly, (req, res)
 app.get('/api/transactions/:id', authenticateToken, (req, res) => {
   const transactionId = req.params.id;
   let query = `
-    SELECT t.*, u.name as user_name, u.email as user_email, u.phone as user_phone
+    SELECT t.*, u.name as user_name, u.email as user_email, u.phone as user_phone, u.role as user_role, u.ekspedisi_name
     FROM transactions t 
     JOIN users u ON t.user_id = u.id
     WHERE t.id = ?
   `;
 
   // If customer, only allow their own transactions
-  if (req.user.role === 'customer') {
+  if (req.user.role === 'customer' || req.user.role === 'mitra') {
     query += ' AND t.user_id = ?';
     db.query(query, [transactionId, req.user.id], (err, results) => {
       if (err) {
@@ -1382,7 +1583,7 @@ app.get('/api/tracking/:resi', (req, res) => {
   const resi = req.params.resi;
 
   db.query(
-    `SELECT t.*, u.name as user_name, u.phone as user_phone,
+    `SELECT t.*, u.name as user_name, u.phone as user_phone, u.role as user_role, u.ekspedisi_name,
             e.name as expedition_name, e.api_url as expedition_api_url
      FROM transactions t 
      JOIN users u ON t.user_id = u.id 
