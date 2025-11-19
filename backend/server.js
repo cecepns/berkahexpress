@@ -1074,12 +1074,13 @@ app.post('/api/transactions', authenticateToken, upload.fields([
     length, 
     width, 
     height,
+    isi_paket,
     kode_pos_penerima,
     nomor_identitas_penerima,
     email_penerima
   } = req.body;
 
-  if (!sender_name || !sender_phone || !sender_address || !destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height) {
+  if (!sender_name || !sender_phone || !sender_address || !destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height || !isi_paket) {
     return res.status(400).json({ success: false, message: 'All required fields must be filled' });
   }
 
@@ -1193,14 +1194,14 @@ app.post('/api/transactions', authenticateToken, upload.fields([
             db.query(
               `INSERT INTO transactions 
                (user_id, resi, sender_name, sender_phone, sender_address, destination, receiver_name, receiver_phone, receiver_address, item_category,
-                weight, length, width, height, volume, 
+                weight, length, width, height, volume, isi_paket,
                 price_per_kg, price_per_volume, total_price,
                 foto_alamat, kode_pos_penerima, tanda_pengenal_depan, tanda_pengenal_belakang,
                 nomor_identitas_penerima, email_penerima) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 req.user.id, resi, sender_name, sender_phone, sender_address, destination, receiver_name, receiver_phone, receiver_address, item_category,
-                weightNum, lengthNum, widthNum, heightNum, volume, 
+                weightNum, lengthNum, widthNum, heightNum, volume, isi_paket,
                 pricePerKg, pricePerVolume, totalPrice,
                 fotoAlamat, kode_pos_penerima || null, tandaPengenalDepan, tandaPengenalBelakang,
                 nomor_identitas_penerima || null, email_penerima || null
@@ -1369,13 +1370,14 @@ app.put('/api/transactions/:id', authenticateToken, adminOnly, upload.fields([
     length,
     width,
     height,
+    isi_paket,
     kode_pos_penerima,
     nomor_identitas_penerima,
     email_penerima
   } = req.body;
 
   // Validate required fields
-  if (!sender_name || !sender_phone || !sender_address || !destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height) {
+  if (!sender_name || !sender_phone || !sender_address || !destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height || !isi_paket) {
     return res.status(400).json({ success: false, message: 'All required fields must be filled' });
   }
 
@@ -1415,7 +1417,7 @@ app.put('/api/transactions/:id', authenticateToken, adminOnly, upload.fields([
       `UPDATE transactions 
        SET sender_name = ?, sender_phone = ?, sender_address = ?,
            destination = ?, receiver_name = ?, receiver_phone = ?, receiver_address = ?,
-           item_category = ?, weight = ?, length = ?, width = ?, height = ?, volume = ?,
+           item_category = ?, weight = ?, length = ?, width = ?, height = ?, volume = ?, isi_paket = ?,
            price_per_kg = ?, price_per_volume = ?, total_price = ?,
            foto_alamat = ?, kode_pos_penerima = ?, tanda_pengenal_depan = ?, tanda_pengenal_belakang = ?,
            nomor_identitas_penerima = ?, email_penerima = ?
@@ -1423,7 +1425,7 @@ app.put('/api/transactions/:id', authenticateToken, adminOnly, upload.fields([
       [
         sender_name, sender_phone, sender_address,
         destination, receiver_name, receiver_phone, receiver_address,
-        item_category, weightNum, lengthNum, widthNum, heightNum, volume,
+        item_category, weightNum, lengthNum, widthNum, heightNum, volume, isi_paket,
         pricePerKg, pricePerVolume, totalPrice,
         fotoAlamat, kode_pos_penerima || null, tandaPengenalDepan, tandaPengenalBelakang,
         nomor_identitas_penerima || null, email_penerima || null,

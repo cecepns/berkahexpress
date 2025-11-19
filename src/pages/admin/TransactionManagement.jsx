@@ -39,6 +39,7 @@ const TransactionManagement = () => {
     length: '',
     width: '',
     height: '',
+    isi_paket: '',
     kode_pos_penerima: '',
     nomor_identitas_penerima: '',
     email_penerima: '',
@@ -170,6 +171,7 @@ const TransactionManagement = () => {
       length: transaction.length ? String(transaction.length) : '',
       width: transaction.width ? String(transaction.width) : '',
       height: transaction.height ? String(transaction.height) : '',
+      isi_paket: transaction.isi_paket || '',
       kode_pos_penerima: transaction.kode_pos_penerima || '',
       nomor_identitas_penerima: transaction.nomor_identitas_penerima || '',
       email_penerima: transaction.email_penerima || '',
@@ -211,6 +213,7 @@ const TransactionManagement = () => {
     formData.append('length', Number(editForm.length));
     formData.append('width', Number(editForm.width));
     formData.append('height', Number(editForm.height));
+    formData.append('isi_paket', editForm.isi_paket);
     
     if (editForm.kode_pos_penerima) formData.append('kode_pos_penerima', editForm.kode_pos_penerima);
     if (editForm.nomor_identitas_penerima) formData.append('nomor_identitas_penerima', editForm.nomor_identitas_penerima);
@@ -537,7 +540,10 @@ const TransactionManagement = () => {
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Dimensi & Berat</h4>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Detail Paket</h4>
+                  {selectedTransaction.isi_paket && (
+                    <p className="text-sm text-gray-900 mb-2"><strong>Isi Paket:</strong> {selectedTransaction.isi_paket}</p>
+                  )}
                   <p className="text-sm text-gray-900">Berat: {selectedTransaction.weight} kg</p>
                   <p className="text-sm text-gray-900">
                     Dimensi: {selectedTransaction.length} x {selectedTransaction.width} x {selectedTransaction.height} cm
@@ -853,6 +859,18 @@ const TransactionManagement = () => {
               {/* Package Details */}
               <div className="border-b pb-4">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">Detail Paket</h4>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700">Isi Paket *</label>
+                  <textarea
+                    name="isi_paket"
+                    value={editForm.isi_paket}
+                    onChange={handleEditFormChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    rows="2"
+                    placeholder="Deskripsi isi paket"
+                    required
+                  />
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Berat (kg) *</label>

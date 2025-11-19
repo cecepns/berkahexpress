@@ -31,6 +31,7 @@ const Transactions = () => {
     length: '',
     width: '',
     height: '',
+    isi_paket: '',
     kode_pos_penerima: '',
     nomor_identitas_penerima: '',
     email_penerima: '',
@@ -89,6 +90,7 @@ const Transactions = () => {
       length: transaction.length ? String(transaction.length) : '',
       width: transaction.width ? String(transaction.width) : '',
       height: transaction.height ? String(transaction.height) : '',
+      isi_paket: transaction.isi_paket || '',
       kode_pos_penerima: transaction.kode_pos_penerima || '',
       nomor_identitas_penerima: transaction.nomor_identitas_penerima || '',
       email_penerima: transaction.email_penerima || '',
@@ -205,10 +207,10 @@ const Transactions = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { sender_name, sender_phone, sender_address, destination, receiver_name, receiver_phone, receiver_address, item_category, weight, length, width, height, kode_pos_penerima, nomor_identitas_penerima, email_penerima } = form;
+    const { sender_name, sender_phone, sender_address, destination, receiver_name, receiver_phone, receiver_address, item_category, weight, length, width, height, isi_paket, kode_pos_penerima, nomor_identitas_penerima, email_penerima } = form;
     
     // Basic validation
-    if (!sender_name || !sender_phone || !sender_address || !destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height) {
+    if (!sender_name || !sender_phone || !sender_address || !destination || !receiver_name || !receiver_phone || !receiver_address || !item_category || !weight || !length || !width || !height || !isi_paket) {
       toast.error('Semua field wajib diisi');
       return;
     }
@@ -241,6 +243,7 @@ const Transactions = () => {
       formData.append('length', Number(length));
       formData.append('width', Number(width));
       formData.append('height', Number(height));
+      formData.append('isi_paket', isi_paket);
       
       // Add optional fields if they exist
       if (kode_pos_penerima) formData.append('kode_pos_penerima', kode_pos_penerima);
@@ -430,6 +433,19 @@ const Transactions = () => {
               <option value="SENSITIF">Sensitif</option>
               <option value="BATERAI">Baterai</option>
             </select>
+          </div>
+
+          <div className="mb-3">
+            <label className="block text-sm font-medium mb-1">Isi Paket *</label>
+            <textarea 
+              name="isi_paket" 
+              value={form.isi_paket} 
+              onChange={handleChange} 
+              className="w-full border rounded px-3 py-2" 
+              rows="2"
+              placeholder="Deskripsi singkat isi paket (contoh: Buku, Elektronik, Pakaian, dll)"
+              required
+            />
           </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -758,7 +774,10 @@ const Transactions = () => {
               </div>
 
               <div className="border-t pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Dimensi & Berat</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Detail Paket</h4>
+                {selectedTransaction.isi_paket && (
+                  <p className="text-sm text-gray-900 mb-3"><strong>Isi Paket:</strong> {selectedTransaction.isi_paket}</p>
+                )}
                 <p className="text-sm text-gray-900">Berat: {selectedTransaction.weight} kg</p>
                 <p className="text-sm text-gray-900">
                   Dimensi: {selectedTransaction.length} x {selectedTransaction.width} x {selectedTransaction.height} cm
