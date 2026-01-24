@@ -4,6 +4,14 @@ import { pdf } from '@react-pdf/renderer';
 import ResiPDFDocument from '../components/ResiPDFDocument';
 import JsBarcode from 'jsbarcode';
 
+// Helper function to mask last 5 digits of phone number
+const maskPhone = (phone) => {
+  if (!phone || phone === '-') return '-';
+  const str = String(phone);
+  if (str.length <= 5) return str;
+  return str.slice(0, -5) + '***';
+};
+
 /**
  * Generate HTML content for resi print
  */
@@ -190,7 +198,7 @@ export const generateResiHTML = (transaction, isCustomer = false) => {
       <div class="card-title">PENGIRIM</div>
       <div class="card-content">
         <div style="font-weight: bold;">${transaction.sender_name || transaction.user_name || '-'}</div>
-        <div>${transaction.sender_phone || transaction.user_phone || '-'}</div>
+        <div>${maskPhone(transaction.sender_phone || transaction.user_phone)}</div>
         <div>${transaction.sender_address || transaction.user_address || '-'}</div>
       </div>
     </div>
@@ -200,7 +208,7 @@ export const generateResiHTML = (transaction, isCustomer = false) => {
       <div class="card-title">PENERIMA</div>
       <div class="card-content">
         <div style="font-weight: bold;">${transaction.receiver_name || '-'}</div>
-        <div>${transaction.receiver_phone || '-'}</div>
+        <div>${maskPhone(transaction.receiver_phone)}</div>
         <div>${transaction.receiver_address || '-'}</div>
         <div style="font-weight: bold; margin-top: 2px;">${transaction.destination || '-'}</div>
       </div>
@@ -211,7 +219,7 @@ export const generateResiHTML = (transaction, isCustomer = false) => {
       <div class="card-title">INFORMASI PAKET</div>
       <div class="card-content">
         <div><strong>Tanggal:</strong> ${new Date(transaction.created_at).toLocaleDateString('id-ID')}</div>
-        <div><strong>Kategori:</strong> ${transaction.item_category || 'NORMAL'}</div>
+        <div><strong>Kategori:</strong> ${transaction.item_category || 'Reguler'}</div>
         <div><strong>Berat:</strong> ${transaction.weight} kg</div>
         <div><strong>Dimensi:</strong> ${transaction.length} x ${transaction.width} x ${transaction.height} cm</div>
         <div><strong>Volume Weight:</strong> ${transaction.volume ? Number(transaction.volume).toFixed(2) : '0.00'} kg</div>

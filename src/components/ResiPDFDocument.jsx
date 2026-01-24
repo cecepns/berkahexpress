@@ -82,6 +82,14 @@ const styles = StyleSheet.create({
   },
 });
 
+// Helper function to mask last 5 digits of phone number
+const maskPhone = (phone) => {
+  if (!phone || phone === '-') return '-';
+  const str = String(phone);
+  if (str.length <= 5) return str;
+  return str.slice(0, -5) + '***';
+};
+
 const ResiPDFDocument = ({ transaction, isCustomer = false, barcodeBase64 = null }) => {
   if (!transaction) return null;
 
@@ -123,7 +131,7 @@ const ResiPDFDocument = ({ transaction, isCustomer = false, barcodeBase64 = null
           <Text style={styles.cardTitle}>PENGIRIM</Text>
           <View style={styles.cardContent}>
             <Text style={[styles.row, styles.bold]}>{transaction.sender_name || transaction.user_name || '-'}</Text>
-            <Text style={styles.row}>{transaction.sender_phone || transaction.user_phone || '-'}</Text>
+            <Text style={styles.row}>{maskPhone(transaction.sender_phone || transaction.user_phone)}</Text>
             <Text style={styles.row}>{transaction.sender_address || transaction.user_address || '-'}</Text>
           </View>
         </View>
@@ -133,7 +141,7 @@ const ResiPDFDocument = ({ transaction, isCustomer = false, barcodeBase64 = null
           <Text style={styles.cardTitle}>PENERIMA</Text>
           <View style={styles.cardContent}>
             <Text style={[styles.row, styles.bold]}>{transaction.receiver_name || '-'}</Text>
-            <Text style={styles.row}>{transaction.receiver_phone || '-'}</Text>
+            <Text style={styles.row}>{maskPhone(transaction.receiver_phone)}</Text>
             <Text style={styles.row}>{transaction.receiver_address || '-'}</Text>
             <Text style={[styles.row, styles.bold]}>{transaction.destination || '-'}</Text>
           </View>
@@ -146,7 +154,7 @@ const ResiPDFDocument = ({ transaction, isCustomer = false, barcodeBase64 = null
             <Text style={styles.row}>
               Tanggal: {new Date(transaction.created_at).toLocaleDateString('id-ID')}
             </Text>
-            <Text style={styles.row}>Kategori: {transaction.item_category || 'NORMAL'}</Text>
+            <Text style={styles.row}>Kategori: {transaction.item_category || 'Reguler'}</Text>
             <Text style={styles.row}>Berat: {transaction.weight} kg</Text>
             <Text style={styles.row}>
               Dimensi: {transaction.length} x {transaction.width} x {transaction.height} cm
