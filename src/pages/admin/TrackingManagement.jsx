@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { trackingAPI, transactionAPI } from '../../utils/api';
+import { useState, useEffect, useCallback } from 'react';
+import { trackingAPI } from '../../utils/api';
 import { toast } from 'react-toastify';
 import { 
   PlusIcon,
@@ -9,13 +9,16 @@ import {
   CheckCircleIcon,
   EyeIcon,
   PencilIcon,
-  XMarkIcon
+  XMarkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 const TrackingManagement = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedResi, setSelectedResi] = useState('');
@@ -25,21 +28,42 @@ const TrackingManagement = () => {
     description: ''
   });
   const [editingUpdate, setEditingUpdate] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
-      const response = await transactionAPI.getAllTransactions();
+      setLoading(true);
+      const response = await trackingAPI.getAdminTransactions(currentPage, itemsPerPage, searchTerm);
       setTransactions(response.data.data);
+      setTotalPages(response.data.pagination?.totalPages || 1);
+      setTotalItems(response.data.pagination?.total || 0);
     } catch (error) {
       console.error('Error fetching transactions:', error);
+      toast.error('Gagal memuat data transaksi');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchTerm]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== searchTerm) {
+        setSearchTerm(searchInput);
+        setCurrentPage(1); // Reset to first page when searching
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput, searchTerm]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -144,12 +168,6 @@ const TrackingManagement = () => {
     }
   };
 
-  const filteredTransactions = transactions.filter(transaction =>
-    transaction.resi.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transaction.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transaction.destination.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -173,9 +191,12 @@ const TrackingManagement = () => {
             type="text"
             placeholder="Cari resi, user, atau tujuan..."
             className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
+        </div>
+        <div className="text-sm text-gray-600">
+          Total: {totalItems} transaksi
         </div>
       </div>
 
@@ -206,7 +227,7 @@ const TrackingManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTransactions.map((transaction) => (
+              {transactions.map((transaction) => (
                 <tr key={transaction.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 font-mono">{transaction.resi}</div>
@@ -251,7 +272,7 @@ const TrackingManagement = () => {
           </table>
         </div>
 
-        {filteredTransactions.length === 0 && (
+        {transactions.length === 0 && (
           <div className="text-center py-12">
             <TruckIcon className="mx-auto h-12 w-12 text-gray-400" />
             <p className="mt-4 text-sm text-gray-500">
@@ -260,6 +281,102 @@ const TrackingManagement = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between bg-white px-4 py-3 rounded-lg shadow-md">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeftIcon className="h-4 w-4 mr-1" />
+              Sebelumnya
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Selanjutnya
+              <ChevronRightIcon className="h-4 w-4 ml-1" />
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Menampilkan <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span> - <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> dari <span className="font-medium">{totalItems}</span> data
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Halaman Pertama"
+                >
+                  <span className="sr-only">First</span>
+                  <span className="text-xs">«</span>
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeftIcon className="h-4 w-4" />
+                </button>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        currentPage === pageNum
+                          ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRightIcon className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Halaman Terakhir"
+                >
+                  <span className="sr-only">Last</span>
+                  <span className="text-xs">»</span>
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* View Tracking History Modal */}
       {showViewModal && (

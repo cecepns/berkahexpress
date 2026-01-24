@@ -115,6 +115,8 @@ export const trackingAPI = {
   getTrackingUpdates: (resi) => api.get(`/tracking/${resi}/updates`),
   updateTrackingUpdate: (id, trackingData) => api.put(`/tracking/updates/${id}`, trackingData),
   deleteTrackingUpdate: (id) => api.delete(`/tracking/updates/${id}`),
+  getAdminTransactions: (page = 1, limit = 10, search = '') => 
+    api.get(`/tracking/admin/transactions?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`),
 };
 
 export default api;

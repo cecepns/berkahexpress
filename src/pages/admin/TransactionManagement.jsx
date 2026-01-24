@@ -24,7 +24,8 @@ const TransactionManagement = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [expeditionForm, setExpeditionForm] = useState({
     expedition_id: '',
-    expedition_resi: ''
+    expedition_resi: '',
+    is_manual_tracking: false
   });
   const [editForm, setEditForm] = useState({
     sender_name: '',
@@ -126,16 +127,31 @@ const TransactionManagement = () => {
 
   const handleExpeditionUpdate = async (e) => {
     e.preventDefault();
-    if (!expeditionForm.expedition_id || !expeditionForm.expedition_resi) {
-      toast.error('Pilih ekspedisi dan masukkan no resi');
+    
+    // If manual tracking, don't require expedition_id
+    if (!expeditionForm.is_manual_tracking && !expeditionForm.expedition_id) {
+      toast.error('Pilih ekspedisi atau aktifkan tracking manual');
+      return;
+    }
+    
+    if (!expeditionForm.expedition_resi) {
+      toast.error('Masukkan no resi');
       return;
     }
 
     try {
-      await transactionAPI.updateTransactionExpedition(selectedTransaction.id, expeditionForm);
-      toast.success('Ekspedisi berhasil diupdate dan status otomatis berubah ke Dikirim');
+      const updateData = {
+        expedition_id: expeditionForm.is_manual_tracking ? null : expeditionForm.expedition_id,
+        expedition_resi: expeditionForm.expedition_resi,
+        is_manual_tracking: expeditionForm.is_manual_tracking
+      };
+      
+      await transactionAPI.updateTransactionExpedition(selectedTransaction.id, updateData);
+      toast.success(expeditionForm.is_manual_tracking 
+        ? 'Tracking manual berhasil diaktifkan dan status otomatis berubah ke Dikirim' 
+        : 'Ekspedisi berhasil diupdate dan status otomatis berubah ke Dikirim');
       setShowModal(false);
-      setExpeditionForm({ expedition_id: '', expedition_resi: '' });
+      setExpeditionForm({ expedition_id: '', expedition_resi: '', is_manual_tracking: false });
       fetchTransactions();
     } catch (error) {
       console.error('Error updating expedition:', error);
@@ -145,13 +161,16 @@ const TransactionManagement = () => {
   const openModal = (transaction) => {
     setSelectedTransaction(transaction);
     // Pre-populate form if expedition info exists
-    if (transaction.expedition_id && transaction.expedition_resi) {
+    if (transaction.expedition_resi) {
+      // Check if it's manual tracking (has resi but no expedition_id)
+      const isManual = !transaction.expedition_id && transaction.expedition_resi;
       setExpeditionForm({
-        expedition_id: transaction.expedition_id.toString(),
-        expedition_resi: transaction.expedition_resi
+        expedition_id: transaction.expedition_id ? transaction.expedition_id.toString() : '',
+        expedition_resi: transaction.expedition_resi,
+        is_manual_tracking: isManual || transaction.is_manual_tracking || false
       });
     } else {
-      setExpeditionForm({ expedition_id: '', expedition_resi: '' });
+      setExpeditionForm({ expedition_id: '', expedition_resi: '', is_manual_tracking: false });
     }
     setShowModal(true);
   };
@@ -576,35 +595,67 @@ const TransactionManagement = () => {
                     {selectedTransaction.expedition_resi ? 'Edit Ekspedisi' : 'Input Ekspedisi'}
                   </h4>
                   <form onSubmit={handleExpeditionUpdate} className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Pilih Ekspedisi</label>
-                      <select
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                        value={expeditionForm.expedition_id}
-                        onChange={(e) => setExpeditionForm({...expeditionForm, expedition_id: e.target.value})}
-                        required
-                      >
-                        <option value="">Pilih Ekspedisi</option>
-                        {expeditions.map(exp => (
-                          <option key={exp.id} value={exp.id}>{exp.name}</option>
-                        ))}
-                      </select>
+                    {/* Manual Tracking Toggle */}
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
+                      <input
+                        type="checkbox"
+                        id="is_manual_tracking"
+                        checked={expeditionForm.is_manual_tracking}
+                        onChange={(e) => setExpeditionForm({
+                          ...expeditionForm, 
+                          is_manual_tracking: e.target.checked,
+                          expedition_id: e.target.checked ? '' : expeditionForm.expedition_id
+                        })}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="is_manual_tracking" className="text-sm font-medium text-gray-700">
+                        Tracking Manual
+                      </label>
                     </div>
+                      <span className="text-xs text-gray-500">(Input tracking secara manual oleh admin)</span>
+                    
+                    {expeditionForm.is_manual_tracking && (
+                      <div className="bg-orange-50 p-3 rounded-md">
+                        <p className="text-xs text-orange-700">
+                          <strong>Info:</strong> Dengan tracking manual, status perjalanan paket akan diinput secara manual oleh admin melalui menu Tracking, tanpa menggunakan API ekspedisi eksternal.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {!expeditionForm.is_manual_tracking && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Pilih Ekspedisi</label>
+                        <select
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                          value={expeditionForm.expedition_id}
+                          onChange={(e) => setExpeditionForm({...expeditionForm, expedition_id: e.target.value})}
+                          required={!expeditionForm.is_manual_tracking}
+                        >
+                          <option value="">Pilih Ekspedisi</option>
+                          {expeditions.map(exp => (
+                            <option key={exp.id} value={exp.id}>{exp.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">No. Resi Ekspedisi</label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        {expeditionForm.is_manual_tracking ? 'No. Resi / Kode Tracking' : 'No. Resi Ekspedisi'}
+                      </label>
                       <input
                         type="text"
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
                         value={expeditionForm.expedition_resi}
                         onChange={(e) => setExpeditionForm({...expeditionForm, expedition_resi: e.target.value})}
-                        placeholder="Masukkan no resi ekspedisi"
+                        placeholder={expeditionForm.is_manual_tracking ? "Masukkan kode tracking/resi" : "Masukkan no resi ekspedisi"}
                         required
                       />
                     </div>
                     {selectedTransaction.status === 'pending' && (
                       <div className="bg-blue-50 p-3 rounded-md">
                         <p className="text-xs text-blue-600">
-                          <strong>Info:</strong> Setelah input resi ekspedisi, status otomatis akan berubah menjadi &ldquo;Dikirim&rdquo;
+                          <strong>Info:</strong> Setelah input resi, status otomatis akan berubah menjadi &ldquo;Dikirim&rdquo;
                         </p>
                       </div>
                     )}
@@ -612,6 +663,9 @@ const TransactionManagement = () => {
                       <div className="bg-yellow-50 p-3 rounded-md">
                         <p className="text-xs text-yellow-700">
                           <strong>Resi Saat Ini:</strong> <span className="font-mono">{selectedTransaction.expedition_resi}</span>
+                          {selectedTransaction.is_manual_tracking && (
+                            <span className="ml-2 text-orange-600">(Manual)</span>
+                          )}
                         </p>
                       </div>
                     )}
@@ -731,7 +785,7 @@ const TransactionManagement = () => {
                 onClick={() => {
                   setShowModal(false);
                   setSelectedTransaction(null);
-                  setExpeditionForm({ expedition_id: '', expedition_resi: '' });
+                  setExpeditionForm({ expedition_id: '', expedition_resi: '', is_manual_tracking: false });
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
               >

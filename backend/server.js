@@ -1269,10 +1269,15 @@ app.post('/api/transactions', authenticateToken, upload.fields([
 // Update transaction expedition (admin input resi ekspedisi)
 app.put('/api/transactions/:id/expedition', authenticateToken, adminOnly, (req, res) => {
   const transactionId = req.params.id;
-  const { expedition_id, expedition_resi } = req.body;
+  const { expedition_id, expedition_resi, is_manual_tracking } = req.body;
 
-  if (!expedition_id || !expedition_resi) {
-    return res.status(400).json({ success: false, message: 'Expedition ID and Resi are required' });
+  // If not manual tracking, expedition_id is required
+  if (!is_manual_tracking && !expedition_id) {
+    return res.status(400).json({ success: false, message: 'Expedition ID is required when not using manual tracking' });
+  }
+  
+  if (!expedition_resi) {
+    return res.status(400).json({ success: false, message: 'Expedition Resi is required' });
   }
 
   // When admin inputs expedition resi, automatically update status to 'dikirim'
@@ -1281,9 +1286,15 @@ app.put('/api/transactions/:id/expedition', authenticateToken, adminOnly, (req, 
       return res.status(500).json({ success: false, message: 'Transaction error' });
     }
 
+    // If manual tracking, set expedition_id to null
+    const expId = is_manual_tracking ? null : expedition_id;
+    const trackingDescription = is_manual_tracking 
+      ? 'Paket telah dikirim (tracking manual aktif)' 
+      : 'Paket telah diserahkan ke ekspedisi untuk pengiriman';
+
     db.query(
-      'UPDATE transactions SET expedition_id = ?, expedition_resi = ?, status = ? WHERE id = ?',
-      [expedition_id, expedition_resi, 'dikirim', transactionId],
+      'UPDATE transactions SET expedition_id = ?, expedition_resi = ?, is_manual_tracking = ?, status = ? WHERE id = ?',
+      [expId, expedition_resi, is_manual_tracking || false, 'dikirim', transactionId],
       (err, results) => {
         if (err) {
           return db.rollback(() => {
@@ -1300,7 +1311,7 @@ app.put('/api/transactions/:id/expedition', authenticateToken, adminOnly, (req, 
         // Add tracking update
         db.query(
           'INSERT INTO tracking_updates (transaction_id, status, description) VALUES (?, ?, ?)',
-          [transactionId, 'dikirim', 'Paket telah diserahkan ke ekspedisi untuk pengiriman'],
+          [transactionId, 'dikirim', trackingDescription],
           (err, trackingResults) => {
             if (err) {
               return db.rollback(() => {
@@ -1315,7 +1326,12 @@ app.put('/api/transactions/:id/expedition', authenticateToken, adminOnly, (req, 
                 });
               }
 
-              res.json({ success: true, message: 'Expedition info updated and status changed to dikirim' });
+              res.json({ 
+                success: true, 
+                message: is_manual_tracking 
+                  ? 'Manual tracking enabled and status changed to dikirim' 
+                  : 'Expedition info updated and status changed to dikirim' 
+              });
             });
           }
         );
@@ -1580,6 +1596,69 @@ app.get('/api/transactions/:id', authenticateToken, (req, res) => {
 
 // ==================== TRACKING ROUTES ====================
 
+// Get transactions for tracking management with pagination (admin only)
+app.get('/api/tracking/admin/transactions', authenticateToken, adminOnly, (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+  const search = req.query.search || '';
+
+  let countQuery = `
+    SELECT COUNT(*) as total
+    FROM transactions t 
+    JOIN users u ON t.user_id = u.id
+  `;
+  let countParams = [];
+
+  let dataQuery = `
+    SELECT t.*, u.name as user_name, u.email as user_email, u.phone as user_phone, u.address as user_address
+    FROM transactions t 
+    JOIN users u ON t.user_id = u.id
+  `;
+  let dataParams = [];
+
+  // Add search filter if provided
+  if (search) {
+    const searchCondition = ' WHERE (t.resi LIKE ? OR u.name LIKE ? OR t.destination LIKE ?)';
+    countQuery += searchCondition;
+    dataQuery += searchCondition;
+    const searchParam = `%${search}%`;
+    countParams.push(searchParam, searchParam, searchParam);
+    dataParams.push(searchParam, searchParam, searchParam);
+  }
+
+  dataQuery += ' ORDER BY t.created_at DESC LIMIT ? OFFSET ?';
+  dataParams.push(limit, offset);
+
+  // Get total count
+  db.query(countQuery, countParams, (err, countResults) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    const total = countResults[0].total;
+    const totalPages = Math.ceil(total / limit);
+
+    // Get paginated data
+    db.query(dataQuery, dataParams, (err, results) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      res.json({ 
+        success: true, 
+        data: results,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages
+        }
+      });
+    });
+  });
+});
+
 // Get tracking by resi (public)
 app.get('/api/tracking/:resi', (req, res) => {
   const resi = req.params.resi;
@@ -1617,13 +1696,14 @@ app.get('/api/tracking/:resi', (req, res) => {
             data: {
               transaction: {
                 ...transaction,
+                is_manual_tracking: transaction.is_manual_tracking || false,
                 user: {
                   name: transaction.user_name,
                   phone: transaction.user_phone
                 },
                 expedition: {
                   name: transaction.expedition_name,
-                  api_url: transaction.expedition_api_url
+                  api_url: transaction.is_manual_tracking ? null : transaction.expedition_api_url
                 }
               },
               updates: updateResults

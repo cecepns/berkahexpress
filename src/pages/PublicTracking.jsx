@@ -28,8 +28,15 @@ const PublicTracking = () => {
       const trackingData = response.data.data;
       setTracking(trackingData);
 
-      // Fetch external tracking if expedition info exists
-      if (trackingData.transaction?.expedition_resi && trackingData.transaction?.expedition?.api_url) {
+      // Only fetch external tracking if:
+      // 1. It's NOT manual tracking
+      // 2. expedition_resi exists
+      // 3. expedition api_url exists
+      const isManualTracking = trackingData.transaction?.is_manual_tracking;
+      
+      if (!isManualTracking && 
+          trackingData.transaction?.expedition_resi && 
+          trackingData.transaction?.expedition?.api_url) {
         try {
           const expeditionApiUrl = trackingData.transaction.expedition.api_url;
           const expeditionResi = trackingData.transaction.expedition_resi;
@@ -203,8 +210,23 @@ const PublicTracking = () => {
 
             {/* Tracking Timeline */}
             <div className="p-6">
-              {/* Show External Tracking if available */}
-              {externalTracking?.data?.tracking ? (
+              {/* Show Manual Tracking Badge if applicable */}
+              {tracking.transaction?.is_manual_tracking && (
+                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center">
+                    <svg className="h-5 w-5 text-orange-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-medium text-orange-700">Tracking Manual</span>
+                  </div>
+                  <p className="mt-1 text-xs text-orange-600">
+                    Status pengiriman paket ini diperbarui secara manual oleh admin.
+                  </p>
+                </div>
+              )}
+              
+              {/* Show External Tracking if available (only for non-manual tracking) */}
+              {!tracking.transaction?.is_manual_tracking && externalTracking?.data?.tracking ? (
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">
@@ -272,11 +294,21 @@ const PublicTracking = () => {
                   </div>
                 </div>
               ) : (
-                // Show Internal Tracking as fallback
+                // Show Internal Tracking (for manual tracking or as fallback)
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                    Status Perjalanan
-                  </h3>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Status Perjalanan
+                    </h3>
+                    {tracking.transaction?.expedition_resi && (
+                      <span className="text-sm text-gray-600">
+                        {tracking.transaction?.is_manual_tracking 
+                          ? <span className="text-orange-600">Tracking: <span className="font-mono font-semibold">{tracking.transaction.expedition_resi}</span></span>
+                          : <span>Resi: <span className="font-mono font-semibold text-blue-600">{tracking.transaction.expedition_resi}</span></span>
+                        }
+                      </span>
+                    )}
+                  </div>
                   
                   {tracking.updates && tracking.updates.length > 0 ? (
                     <div className="flow-root">
@@ -322,9 +354,11 @@ const PublicTracking = () => {
                     <div className="text-center py-8">
                       <TruckIcon className="mx-auto h-12 w-12 text-gray-400" />
                       <p className="mt-4 text-sm text-gray-500">
-                        {tracking.transaction?.expedition_resi 
-                          ? 'Paket sedang dalam proses di ekspedisi'
-                          : 'Belum ada update tracking untuk paket ini'}
+                        {tracking.transaction?.is_manual_tracking 
+                          ? 'Menunggu update tracking dari admin'
+                          : tracking.transaction?.expedition_resi 
+                            ? 'Paket sedang dalam proses di ekspedisi'
+                            : 'Belum ada update tracking untuk paket ini'}
                       </p>
                     </div>
                   )}
