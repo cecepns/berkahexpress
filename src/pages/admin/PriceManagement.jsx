@@ -83,7 +83,7 @@ const PriceManagement = () => {
     setEditingPrice(price);
     setFormData({
       country: price.country,
-      category: price.category || 'NORMAL',
+      category: price.category || 'Reguler',
       price_per_kg: price.price_per_kg || '',
       price_per_volume: price.price_per_volume || '',
       price_per_kg_mitra: price.price_per_kg_mitra || '',
@@ -353,7 +353,7 @@ const PriceManagement = () => {
                     value={formData.category}
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
                   >
-                    <option value="NORMAL">Normal</option>
+                    <option value="REGULER">Reguler</option>
                     <option value="SENSITIF">Sensitif (Makanan, Parfum, dll)</option>
                     <option value="BATERAI">Baterai / Elektronik</option>
                   </select>
