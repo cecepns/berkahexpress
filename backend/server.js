@@ -1345,7 +1345,8 @@ app.put('/api/transactions/:id/status', authenticateToken, adminOnly, (req, res)
   const transactionId = req.params.id;
   const { status } = req.body;
 
-  if (!status || !['pending', 'dikirim', 'sukses'].includes(status)) {
+  const validStatuses = ['pending', 'dikirim', 'bea_cukai', 'in_transit', 'delivery_progress', 'delivery_completed', 'delivery_failed', 'sukses'];
+  if (!status || !validStatuses.includes(status)) {
     return res.status(400).json({ success: false, message: 'Invalid status' });
   }
 

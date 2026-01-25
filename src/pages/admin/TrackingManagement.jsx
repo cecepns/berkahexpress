@@ -144,6 +144,16 @@ const TrackingManagement = () => {
         return 'text-yellow-600 bg-yellow-100';
       case 'dikirim':
         return 'text-blue-600 bg-blue-100';
+      case 'bea_cukai':
+        return 'text-orange-600 bg-orange-100';
+      case 'in_transit':
+        return 'text-indigo-600 bg-indigo-100';
+      case 'delivery_progress':
+        return 'text-cyan-600 bg-cyan-100';
+      case 'delivery_completed':
+        return 'text-green-600 bg-green-100';
+      case 'delivery_failed':
+        return 'text-red-600 bg-red-100';
       case 'sukses':
         return 'text-green-600 bg-green-100';
       case 'canceled':
@@ -159,6 +169,16 @@ const TrackingManagement = () => {
         return <ClockIcon className="h-4 w-4" />;
       case 'dikirim':
         return <TruckIcon className="h-4 w-4" />;
+      case 'bea_cukai':
+        return <ClockIcon className="h-4 w-4" />;
+      case 'in_transit':
+        return <TruckIcon className="h-4 w-4" />;
+      case 'delivery_progress':
+        return <TruckIcon className="h-4 w-4" />;
+      case 'delivery_completed':
+        return <CheckCircleIcon className="h-4 w-4" />;
+      case 'delivery_failed':
+        return <XMarkIcon className="h-4 w-4" />;
       case 'sukses':
         return <CheckCircleIcon className="h-4 w-4" />;
       case 'canceled':
@@ -513,6 +533,11 @@ const TrackingManagement = () => {
                 >
                   <option value="pending">Pending</option>
                   <option value="dikirim">Dikirim</option>
+                  <option value="bea_cukai">Paket sedang dalam proses Bea Cukai Negara Tujuan</option>
+                  <option value="in_transit">In Transit</option>
+                  <option value="delivery_progress">Delivery Progress</option>
+                  <option value="delivery_completed">Delivery Completed</option>
+                  <option value="delivery_failed">Delivery Failed</option>
                   <option value="sukses">Sukses</option>
                 </select>
               </div>

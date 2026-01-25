@@ -46,6 +46,16 @@ const CustomerDashboard = () => {
         return 'text-yellow-600 bg-yellow-100';
       case 'dikirim':
         return 'text-blue-600 bg-blue-100';
+      case 'bea_cukai':
+        return 'text-orange-600 bg-orange-100';
+      case 'in_transit':
+        return 'text-indigo-600 bg-indigo-100';
+      case 'delivery_progress':
+        return 'text-cyan-600 bg-cyan-100';
+      case 'delivery_completed':
+        return 'text-green-600 bg-green-100';
+      case 'delivery_failed':
+        return 'text-red-600 bg-red-100';
       case 'sukses':
         return 'text-green-600 bg-green-100';
       case 'canceled':

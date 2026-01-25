@@ -258,6 +258,16 @@ const TransactionManagement = () => {
         return 'text-yellow-600 bg-yellow-100';
       case 'dikirim':
         return 'text-blue-600 bg-blue-100';
+      case 'bea_cukai':
+        return 'text-orange-600 bg-orange-100';
+      case 'in_transit':
+        return 'text-indigo-600 bg-indigo-100';
+      case 'delivery_progress':
+        return 'text-cyan-600 bg-cyan-100';
+      case 'delivery_completed':
+        return 'text-green-600 bg-green-100';
+      case 'delivery_failed':
+        return 'text-red-600 bg-red-100';
       case 'sukses':
         return 'text-green-600 bg-green-100';
       case 'canceled':
@@ -312,6 +322,11 @@ const TransactionManagement = () => {
             <option value="all">Semua Status</option>
             <option value="pending">Pending</option>
             <option value="dikirim">Dikirim</option>
+            <option value="bea_cukai">Bea Cukai</option>
+            <option value="in_transit">In Transit</option>
+            <option value="delivery_progress">Delivery Progress</option>
+            <option value="delivery_completed">Delivery Completed</option>
+            <option value="delivery_failed">Delivery Failed</option>
             <option value="sukses">Sukses</option>
             <option value="canceled">Canceled</option>
           </select>
