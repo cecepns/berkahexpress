@@ -1289,7 +1289,7 @@ app.put('/api/transactions/:id/expedition', authenticateToken, adminOnly, (req, 
     // If manual tracking, set expedition_id to null
     const expId = is_manual_tracking ? null : expedition_id;
     const trackingDescription = is_manual_tracking 
-      ? 'Paket telah dikirim (tracking manual aktif)' 
+      ? 'Paket telah dikirim' 
       : 'Paket telah diserahkan ke ekspedisi untuk pengiriman';
 
     db.query(

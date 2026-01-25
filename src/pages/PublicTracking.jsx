@@ -231,7 +231,7 @@ const PublicTracking = () => {
             {/* Tracking Timeline */}
             <div className="p-6">
               {/* Show Manual Tracking Badge if applicable */}
-              {tracking.transaction?.is_manual_tracking && (
+              {/* {tracking.transaction?.is_manual_tracking && (
                 <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                   <div className="flex items-center">
                     <svg className="h-5 w-5 text-orange-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,7 +243,7 @@ const PublicTracking = () => {
                     Status pengiriman paket ini diperbarui secara manual oleh admin.
                   </p>
                 </div>
-              )}
+              )} */}
               
               {/* Show External Tracking if available (only for non-manual tracking) */}
               {!tracking.transaction?.is_manual_tracking && externalTracking?.data?.tracking ? (
