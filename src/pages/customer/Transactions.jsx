@@ -439,7 +439,7 @@ const Transactions = () => {
               onChange={handleChange}
               required
             >
-              <option value="REGULER">Normal</option>
+              <option value="REGULER">Reguler</option>
               <option value="SENSITIF">Sensitif</option>
               <option value="BATERAI">Baterai</option>
             </select>
