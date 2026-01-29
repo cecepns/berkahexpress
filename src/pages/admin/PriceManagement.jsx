@@ -17,7 +17,7 @@ const PriceManagement = () => {
   const [editingPrice, setEditingPrice] = useState(null);
   const [formData, setFormData] = useState({
     country: '',
-    category: 'NORMAL',
+    category: 'REGULER',
     price_per_kg: '',
     price_per_volume: '',
     price_per_kg_mitra: '',
@@ -112,7 +112,7 @@ const PriceManagement = () => {
     setEditingPrice(null);
     setFormData({ 
       country: '', 
-      category: 'NORMAL',
+      category: 'REGULER',
       price_per_kg: '', 
       price_per_volume: '',
       price_per_kg_mitra: '',

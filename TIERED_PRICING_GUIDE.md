@@ -103,7 +103,7 @@ Response: {
     {
       id: 1,
       country: "Malaysia",
-      category: "NORMAL",
+      category: "REGULER",
       use_tiered_pricing: true,
       tiers: [
         {
@@ -123,7 +123,7 @@ Response: {
 POST /api/prices
 Body: {
   country: "Malaysia",
-  category: "NORMAL",
+  category: "REGULER",
   use_tiered_pricing: true,
   is_identity: false,
   tiers: [
@@ -162,7 +162,7 @@ curl -X POST http://localhost:5000/api/prices \
   -H "Content-Type: application/json" \
   -d '{
     "country": "Malaysia",
-    "category": "NORMAL",
+    "category": "REGULER",
     "use_tiered_pricing": true,
     "is_identity": false,
     "tiers": [

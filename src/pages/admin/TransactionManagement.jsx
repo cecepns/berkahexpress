@@ -35,7 +35,7 @@ const TransactionManagement = () => {
     receiver_name: '',
     receiver_phone: '',
     receiver_address: '',
-    item_category: 'NORMAL',
+    item_category: 'REGULER',
     weight: '',
     length: '',
     width: '',
@@ -185,7 +185,7 @@ const TransactionManagement = () => {
       receiver_name: transaction.receiver_name || '',
       receiver_phone: transaction.receiver_phone || '',
       receiver_address: transaction.receiver_address || '',
-      item_category: transaction.item_category || 'NORMAL',
+      item_category: transaction.item_category || 'REGULER',
       weight: transaction.weight ? String(transaction.weight) : '',
       length: transaction.length ? String(transaction.length) : '',
       width: transaction.width ? String(transaction.width) : '',
@@ -540,7 +540,7 @@ const TransactionManagement = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Kategori Barang</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedTransaction.item_category || 'NORMAL'}</p>
+                  <p className="mt-1 text-sm text-gray-900">{selectedTransaction.item_category || 'REGULER'}</p>
                 </div>
 
                 <div className="border-t pt-4">
@@ -906,7 +906,7 @@ const TransactionManagement = () => {
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                       required
                     >
-                      <option value="NORMAL">Normal</option>
+                      <option value="REGULER">Normal</option>
                       <option value="SENSITIF">Sensitif</option>
                       <option value="BATERAI">Baterai</option>
                     </select>

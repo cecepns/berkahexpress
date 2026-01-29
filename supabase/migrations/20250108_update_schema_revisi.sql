@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS expeditions (
 -- ==================== UPDATE PRICES TABLE ====================
 -- Tambah kategori, harga mitra, dan is_identity flag
 ALTER TABLE prices 
-ADD COLUMN category ENUM('NORMAL', 'SENSITIF', 'BATERAI') DEFAULT 'NORMAL' AFTER country,
+ADD COLUMN category ENUM('REGULER', 'SENSITIF', 'BATERAI') DEFAULT 'REGULER' AFTER country,
 ADD COLUMN price_per_kg_mitra DECIMAL(10,2) AFTER price_per_kg,
 ADD COLUMN price_per_volume_mitra DECIMAL(10,2) AFTER price_per_volume,
 ADD COLUMN is_identity BOOLEAN DEFAULT FALSE AFTER price_per_volume_mitra;
@@ -49,7 +49,7 @@ ADD COLUMN receiver_address TEXT AFTER receiver_phone;
 
 -- Tambah field untuk kategori barang
 ALTER TABLE transactions
-ADD COLUMN item_category ENUM('NORMAL', 'SENSITIF', 'BATERAI') DEFAULT 'NORMAL' AFTER receiver_address;
+ADD COLUMN item_category ENUM('REGULER', 'SENSITIF', 'BATERAI') DEFAULT 'REGULER' AFTER receiver_address;
 
 -- Tambah field untuk identity requirements
 ALTER TABLE transactions

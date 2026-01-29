@@ -26,7 +26,7 @@ const Transactions = () => {
     receiver_name: '',
     receiver_phone: '',
     receiver_address: '',
-    item_category: 'NORMAL',
+    item_category: 'REGULER',
     weight: '',
     length: '',
     width: '',
@@ -85,7 +85,7 @@ const Transactions = () => {
       receiver_name: transaction.receiver_name || '',
       receiver_phone: transaction.receiver_phone || '',
       receiver_address: transaction.receiver_address || '',
-      item_category: transaction.item_category || 'NORMAL',
+      item_category: transaction.item_category || 'REGULER',
       weight: transaction.weight ? String(transaction.weight) : '',
       length: transaction.length ? String(transaction.length) : '',
       width: transaction.width ? String(transaction.width) : '',
@@ -277,7 +277,7 @@ const Transactions = () => {
         receiver_name: '',
         receiver_phone: '',
         receiver_address: '',
-        item_category: 'NORMAL',
+        item_category: 'REGULER',
         weight: '', 
         length: '', 
         width: '', 
@@ -439,7 +439,7 @@ const Transactions = () => {
               onChange={handleChange}
               required
             >
-              <option value="NORMAL">Normal</option>
+              <option value="REGULER">Normal</option>
               <option value="SENSITIF">Sensitif</option>
               <option value="BATERAI">Baterai</option>
             </select>
